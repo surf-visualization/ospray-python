@@ -27,6 +27,13 @@ init(const std::vector<std::string>& args)
 
 template<typename T>
 void
+set_param_bool(T &self, const std::string &name, const bool &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
 set_param_float(T &self, const std::string &name, const float &value)
 {
     self.setParam(name, value);
@@ -218,6 +225,7 @@ declare_managedobject_methods(py::module& m, const char *name)
 {
     py::class_<T>(m, name)
         //(void (T::*)(const std::string &, const float &)) 
+        .def("set_param", &set_param_bool<T>)
         .def("set_param", &set_param_int<T>)
         .def("set_param", &set_param_float<T>)
         .def("set_param", &set_param_data<T>)
