@@ -7,9 +7,9 @@ import ospray
 W = 1024
 H = 768
 
-cam_pos = numpy.array((0.0, 0.0, 0.0), dtype=numpy.float32)
-cam_up = numpy.array((0.0, 1.0, 0.0), dtype=numpy.float32)
-cam_view = numpy.array((0.1, 0.0, 1.0), dtype=numpy.float32)
+cam_pos = (0.0, 0.0, 0.0)
+cam_up = (0.0, 1.0, 0.0)
+cam_view = (0.1, 0.0, 1.0)
 
 vertex = numpy.array([
    [-1.0, -1.0, 3.0],
