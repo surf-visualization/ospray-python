@@ -57,29 +57,88 @@ template<typename T>
 void
 set_param_tuple(T &self, const std::string &name, const py::tuple &value)
 {
-    // XXX check length
-    if (py::isinstance<py::int_>(value[0]))
+    auto n = value.size();
+    
+    if (n == 2)
     {
-        ospcommon::math::vec3i vvalue;
-        
-        vvalue.x = py::cast<int>(value[0]);
-        vvalue.y = py::cast<int>(value[1]);
-        vvalue.z = py::cast<int>(value[2]);
-        
-        self.setParam(name, vvalue);
+        if (py::isinstance<py::int_>(value[0]))
+        {
+            ospcommon::math::vec2i vvalue;
+            
+            vvalue.x = py::cast<int>(value[0]);
+            vvalue.y = py::cast<int>(value[1]);
+            
+            self.setParam(name, vvalue);
+        }
+        else if (py::isinstance<py::float_>(value[0]))
+        {
+            ospcommon::math::vec2f vvalue;
+            
+            vvalue.x = py::cast<float>(value[0]);
+            vvalue.y = py::cast<float>(value[1]);
+            
+            self.setParam(name, vvalue);
+        }
+        else
+            printf("WARNING: unhandled data type in set_param_tuple!\n");
     }
-    else if (py::isinstance<py::float_>(value[0]))
+    
+    else if (n == 3)
     {
-        ospcommon::math::vec3f vvalue;
-        
-        vvalue.x = py::cast<float>(value[0]);
-        vvalue.y = py::cast<float>(value[1]);
-        vvalue.z = py::cast<float>(value[2]);
-        
-        self.setParam(name, vvalue);
+        if (py::isinstance<py::int_>(value[0]))
+        {
+            ospcommon::math::vec3i vvalue;
+            
+            vvalue.x = py::cast<int>(value[0]);
+            vvalue.y = py::cast<int>(value[1]);
+            vvalue.z = py::cast<int>(value[2]);
+            
+            self.setParam(name, vvalue);
+        }
+        else if (py::isinstance<py::float_>(value[0]))
+        {
+            ospcommon::math::vec3f vvalue;
+            
+            vvalue.x = py::cast<float>(value[0]);
+            vvalue.y = py::cast<float>(value[1]);
+            vvalue.z = py::cast<float>(value[2]);
+            
+            self.setParam(name, vvalue);
+        }
+        else
+            printf("WARNING: unhandled data type in set_param_tuple!\n");
     }
+    
+    else if (n == 4)
+    {
+        if (py::isinstance<py::int_>(value[0]))
+        {
+            ospcommon::math::vec4i vvalue;
+            
+            vvalue.x = py::cast<int>(value[0]);
+            vvalue.y = py::cast<int>(value[1]);
+            vvalue.z = py::cast<int>(value[2]);
+            vvalue.w = py::cast<int>(value[3]);
+            
+            self.setParam(name, vvalue);
+        }
+        else if (py::isinstance<py::float_>(value[0]))
+        {
+            ospcommon::math::vec4f vvalue;
+            
+            vvalue.x = py::cast<float>(value[0]);
+            vvalue.y = py::cast<float>(value[1]);
+            vvalue.z = py::cast<float>(value[2]);
+            vvalue.w = py::cast<float>(value[3]);
+            
+            self.setParam(name, vvalue);
+        }
+        else
+            printf("WARNING: unhandled data type in set_param_tuple!\n");
+    }
+    
     else
-        printf("WARNING: unhandled data type in set_param_tuple!\n");
+        printf("WARNING: unhandled tuple length %lu set_param_tuple!\n", n);
 }
 
 template<typename T>
