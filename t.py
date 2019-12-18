@@ -88,9 +88,9 @@ print(colors.shape)
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img.save('colors.png')
 
-depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H), format)
-print(depth.shape)
-print(numpy.min(depth), numpy.max(depth))
-
-img = Image.frombuffer('L', (W,H), depth, 'raw', 'L', 0, 1)
-img.save('depth.tif')
+#depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H), format)
+#print(depth.shape)
+#print(numpy.min(depth), numpy.max(depth))
+#
+#img = Image.frombuffer('L', (W,H), depth, 'raw', 'L', 0, 1)
+#img.save('depth.tif')
