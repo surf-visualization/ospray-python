@@ -187,6 +187,7 @@ typedef ospray::cpp::ManagedObject<OSPGeometry, OSP_GEOMETRY>               Mana
 typedef ospray::cpp::ManagedObject<OSPGroup, OSP_GROUP>                     ManagedGroup;
 typedef ospray::cpp::ManagedObject<OSPInstance, OSP_INSTANCE>               ManagedInstance;
 typedef ospray::cpp::ManagedObject<OSPLight, OSP_LIGHT>                     ManagedLight;
+typedef ospray::cpp::ManagedObject<OSPMaterial, OSP_MATERIAL>               ManagedMaterial;
 typedef ospray::cpp::ManagedObject<OSPRenderer, OSP_RENDERER>               ManagedRenderer;
 typedef ospray::cpp::ManagedObject<OSPWorld, OSP_WORLD>                     ManagedWorld;
 
@@ -243,6 +244,7 @@ PYBIND11_MODULE(ospray, m)
     declare_managedobject_methods<ManagedGroup>(m, "ManagedGroup");
     declare_managedobject_methods<ManagedInstance>(m, "ManagedInstance");
     declare_managedobject_methods<ManagedLight>(m, "ManagedLight");
+    declare_managedobject_methods<ManagedMaterial>(m, "ManagedMaterial");
     declare_managedobject_methods<ManagedRenderer>(m, "ManagedRenderer");
     declare_managedobject_methods<ManagedWorld>(m, "ManagedWorld");
     
@@ -301,6 +303,10 @@ PYBIND11_MODULE(ospray, m)
             
     py::class_<ospray::cpp::Light, ManagedLight>(m, "Light")
         .def(py::init<const std::string &>())
+    ;
+    
+    py::class_<ospray::cpp::Material, ManagedMaterial>(m, "Material")
+        .def(py::init<const std::string &, const std::string &>())
     ;
     
     py::class_<ospray::cpp::Renderer, ManagedRenderer>(m, "Renderer")
