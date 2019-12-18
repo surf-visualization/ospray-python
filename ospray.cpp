@@ -223,6 +223,14 @@ PYBIND11_MODULE(ospray, m)
         .export_values()
     ;
     
+    py::enum_<OSPSyncEvent>(m, "OSPSyncEvent")
+        .value("OSP_NONE_FINISHED", OSPSyncEvent::OSP_NONE_FINISHED)
+        .value("OSP_WORLD_RENDERED", OSPSyncEvent::OSP_WORLD_RENDERED)
+        .value("OSP_WORLD_COMMITTED", OSPSyncEvent::OSP_WORLD_COMMITTED)
+        .value("OSP_FRAME_FINISHED", OSPSyncEvent::OSP_FRAME_FINISHED)
+        .value("OSP_TASK_FINISHED", OSPSyncEvent::OSP_TASK_FINISHED)
+        .export_values()
+    ;
     
     m.def("init", &init);
         
@@ -269,6 +277,10 @@ PYBIND11_MODULE(ospray, m)
        
     py::class_<ospray::cpp::Future, ManagedFuture >(m, "Future")
         .def(py::init<>())
+        .def("is_ready", &ospray::cpp::Future::isReady, py::arg("event")=OSP_TASK_FINISHED)
+        .def("wait", &ospray::cpp::Future::wait, py::arg("event")=OSP_TASK_FINISHED)
+        .def("cancel", &ospray::cpp::Future::cancel)
+        .def("progress", &ospray::cpp::Future::progress)
     ;            
             
     py::class_<ospray::cpp::GeometricModel, ManagedGeometricModel >(m, "GeometricModel")

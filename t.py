@@ -74,7 +74,9 @@ channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_
 framebuffer = ospray.FrameBuffer((W,H), format, channels)
 framebuffer.clear()
 
-framebuffer.render_frame(renderer, camera, world)
+future = framebuffer.render_frame(renderer, camera, world)
+future.wait()
+print(future.is_ready())
 
 for frame in range(10):
     framebuffer.render_frame(renderer, camera, world)
