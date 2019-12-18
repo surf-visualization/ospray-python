@@ -166,7 +166,7 @@ framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, p
 
 template<typename T>
 void
-declare_managedobject_instatiation(py::module& m, const char *name)
+declare_managedobject_methods(py::module& m, const char *name)
 {
     py::class_<T>(m, name)
         //(void (T::*)(const std::string &, const float &)) 
@@ -234,17 +234,17 @@ PYBIND11_MODULE(ospray, m)
     
     m.def("init", &init);
         
-    declare_managedobject_instatiation<ManagedCamera>(m, "ManagedCamera");
-    declare_managedobject_instatiation<ManagedData>(m, "ManagedData");
-    declare_managedobject_instatiation<ManagedFrameBuffer>(m, "ManagedFrameBuffer");
-    declare_managedobject_instatiation<ManagedFuture>(m, "ManagedFuture");
-    declare_managedobject_instatiation<ManagedGeometricModel>(m, "ManagedGeometricModel");
-    declare_managedobject_instatiation<ManagedGeometry>(m, "ManagedGeometry");
-    declare_managedobject_instatiation<ManagedGroup>(m, "ManagedGroup");
-    declare_managedobject_instatiation<ManagedInstance>(m, "ManagedInstance");
-    declare_managedobject_instatiation<ManagedLight>(m, "ManagedLight");
-    declare_managedobject_instatiation<ManagedRenderer>(m, "ManagedRenderer");
-    declare_managedobject_instatiation<ManagedWorld>(m, "ManagedWorld");
+    declare_managedobject_methods<ManagedCamera>(m, "ManagedCamera");
+    declare_managedobject_methods<ManagedData>(m, "ManagedData");
+    declare_managedobject_methods<ManagedFrameBuffer>(m, "ManagedFrameBuffer");
+    declare_managedobject_methods<ManagedFuture>(m, "ManagedFuture");
+    declare_managedobject_methods<ManagedGeometricModel>(m, "ManagedGeometricModel");
+    declare_managedobject_methods<ManagedGeometry>(m, "ManagedGeometry");
+    declare_managedobject_methods<ManagedGroup>(m, "ManagedGroup");
+    declare_managedobject_methods<ManagedInstance>(m, "ManagedInstance");
+    declare_managedobject_methods<ManagedLight>(m, "ManagedLight");
+    declare_managedobject_methods<ManagedRenderer>(m, "ManagedRenderer");
+    declare_managedobject_methods<ManagedWorld>(m, "ManagedWorld");
     
     py::class_<ospray::cpp::Camera, ManagedCamera >(m, "Camera")
         .def(py::init<const std::string &>())
