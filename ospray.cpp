@@ -199,12 +199,25 @@ data_constructor(py::array& array)
             return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
         else if (dtype.is(pybind11::dtype::of<int>()))
             return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
+        else if (dtype.is(pybind11::dtype::of<uint8_t>()))
+            return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
         else if (dtype.is(pybind11::dtype::of<uint32_t>()))
             return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
+        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+            return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
     }
     else if (ndim == 2)
     {
-        if (array.shape(1) == 3)
+        if (array.shape(1) == 2)
+        {
+            if (dtype.is(pybind11::dtype::of<float>()))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data());
+            else if (dtype.is(pybind11::dtype::of<int>()))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2i*)array.data());
+            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ui*)array.data());
+        }       
+        else if (array.shape(1) == 3)
         {
             if (dtype.is(pybind11::dtype::of<float>()))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data());
