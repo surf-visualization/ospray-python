@@ -48,6 +48,42 @@ set_param_data(T &self, const std::string &name, const ospray::cpp::Data &data)
 
 template<typename T>
 void
+set_param_tuple(T &self, const std::string &name, const py::tuple &value)
+{
+    // XXX check length
+    if (py::isinstance<py::int_>(value[0]))
+    {
+        ospcommon::math::vec3i vvalue;
+        
+        vvalue.x = py::cast<int>(value[0]);
+        vvalue.y = py::cast<int>(value[1]);
+        vvalue.z = py::cast<int>(value[2]);
+        
+        self.setParam(name, vvalue);
+    }
+    else if (py::isinstance<py::float_>(value[0]))
+    {
+        ospcommon::math::vec3f vvalue;
+        
+        vvalue.x = py::cast<float>(value[0]);
+        vvalue.y = py::cast<float>(value[1]);
+        vvalue.z = py::cast<float>(value[2]);
+        
+        self.setParam(name, vvalue);
+    }
+    else
+        printf("WARNING: unhandled data type in set_param_tuple!\n");
+}
+
+template<typename T>
+void
+set_param_material(T& self, const std::string &name, const ospray::cpp::Material &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
 set_param_numpy_array(T &self, const std::string &name, py::array_t<float, py::array::c_style | py::array::forcecast> array)
 {
     const int ndim = array.ndim();
@@ -174,6 +210,8 @@ declare_managedobject_methods(py::module& m, const char *name)
         .def("set_param", &set_param_float<T>)
         .def("set_param", &set_param_data<T>)
         .def("set_param", &set_param_numpy_array<T>)
+        .def("set_param", &set_param_tuple<T>)
+        .def("set_param", &set_param_material<T>)
         .def("commit", &T::commit)
     ;
 }

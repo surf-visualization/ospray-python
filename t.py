@@ -54,16 +54,24 @@ group.commit()
 instance = ospray.Instance(group)
 instance.commit()
 
+material = ospray.Material('pathtracer', 'MetallicPaint')
+material.set_param('baseColor', (0.9, 0, 0.9))
+material.commit()
+
+gmodel.set_param('material', material)
+gmodel.commit()
+
 world = ospray.World()
 world.set_param('instance', ospray.Data(instance))
 
 light = ospray.Light('ambient')
+#light.set_param('color', (1, 1, 1))
 light.commit()
 
 world.set_param('light', ospray.Data(light))
 world.commit()
 
-renderer = ospray.Renderer('scivis')
+renderer = ospray.Renderer('pathtracer')
 renderer.set_param('aoSamples', 1)
 renderer.set_param('bgColor', 1.0)
 renderer.commit()
