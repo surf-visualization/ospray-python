@@ -70,6 +70,7 @@ light.commit()
 
 world.set_param('light', ospray.Data(light))
 world.commit()
+#print(world.get_bounds())
 
 renderer = ospray.Renderer('pathtracer')
 renderer.set_param('aoSamples', 1)

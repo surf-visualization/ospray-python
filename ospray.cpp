@@ -201,6 +201,18 @@ framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, p
 }
 
 template<typename T>
+py::tuple
+get_bounds(T &self)
+{
+    ospcommon::math::box3f bounds = self.getBounds();
+    
+    return py::make_tuple(
+        bounds.lower.x, bounds.lower.y, bounds.lower.z,
+        bounds.upper.x, bounds.upper.y, bounds.upper.z
+    );
+}
+
+template<typename T>
 void
 declare_managedobject_methods(py::module& m, const char *name)
 {
@@ -213,6 +225,7 @@ declare_managedobject_methods(py::module& m, const char *name)
         .def("set_param", &set_param_tuple<T>)
         .def("set_param", &set_param_material<T>)
         .def("commit", &T::commit)
+        .def("get_bounds", &get_bounds<T>)
     ;
 }
 
