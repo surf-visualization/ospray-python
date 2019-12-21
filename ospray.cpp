@@ -61,6 +61,11 @@ data_constructor(py::array& array)
     {
         if (dtype.is(pybind11::dtype::of<float>()))
             return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
+        else if (dtype.is(pybind11::dtype::of<double>()))
+        {
+            printf("WARNING: passing Data object of double, are you sure that's what you want?\n");
+            return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
+        }
         else if (dtype.is(pybind11::dtype::of<int>()))
             return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
         else if (dtype.is(pybind11::dtype::of<uint8_t>()))
@@ -69,10 +74,23 @@ data_constructor(py::array& array)
             return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
         else if (dtype.is(pybind11::dtype::of<uint64_t>()))
             return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
+        
+        printf("WARNING: unhandled data type in data_constructor(), ndim 1, shape=%ld, kind '%c'!\n", 
+            array.shape(0), dtype.kind());
+        
+        return ospray::cpp::Data();
     }
     else if (ndim == 2)
     {
-        if (array.shape(1) == 2)
+        const int w = array.shape(1);
+        
+        if (dtype.is(pybind11::dtype::of<double>()))
+        {
+            printf("WARNING: attempt to pass double precision vector values, but only single-precision (float) is available\n");
+            return ospray::cpp::Data();
+        }
+        
+        if (w == 2)
         {
             if (dtype.is(pybind11::dtype::of<float>()))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data());
@@ -81,7 +99,7 @@ data_constructor(py::array& array)
             else if (dtype.is(pybind11::dtype::of<uint32_t>()))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ui*)array.data());
         }       
-        else if (array.shape(1) == 3)
+        else if (w == 3)
         {
             if (dtype.is(pybind11::dtype::of<float>()))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data());
@@ -90,7 +108,7 @@ data_constructor(py::array& array)
             else if (dtype.is(pybind11::dtype::of<uint32_t>()))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data());
         }
-        else if (array.shape(1) == 4)
+        else if (w == 4)
         {
             if (dtype.is(pybind11::dtype::of<float>()))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data());
@@ -99,6 +117,11 @@ data_constructor(py::array& array)
             else if (dtype.is(pybind11::dtype::of<uint32_t>()))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());
         }
+
+        printf("WARNING: unhandled data type in data_constructor(), ndim 2, shape=(%ld,%ld), kind '%c'!\n", 
+            array.shape(0), array.shape(1), dtype.kind());
+        
+        return ospray::cpp::Data();
     }
      
     printf("WARNING: unhandled data type in data_constructor(), ndim %d, kind '%c'!\n", ndim, dtype.kind());

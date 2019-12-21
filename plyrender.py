@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys
+import sys, getopt
 import numpy
 from PIL import Image
 import ospray
@@ -9,33 +9,70 @@ from readply import readply
 W = 1024
 H = 768
 
+force_subdivision_mesh = False
+
 argv = ospray.init(sys.argv)
 
-plyfile = argv[1]
+optlist, args = getopt.getopt(argv[1:], 's')
 
-plymesh = readply(plyfile)
+for o, a in optlist:
+    if o == '-s':
+        force_subdivision_mesh = True
+
+plyfile = args[0]
+
+plymesh = readply(plyfile, vertex_values_per_loop=False)
 
 print('%d vertices, %d faces' % (plymesh['num_vertices'], plymesh['num_faces']))
 
+loop_start = plymesh['loop_start']
 loop_length = plymesh['loop_length']
 
 minn, maxn = numpy.min(loop_length), numpy.max(loop_length)
 print('Polygon size range: [%d, %d]' % (minn, maxn))
 
-if minn > 3 or minn != maxn:
-    print('Can only handle pure-triangle meshes, sorry...')
-    sys.exit(-1)
+if minn == maxn:
+    mesh_type = 'pure-triangle' if minn == 3 else 'pure-quad'
+elif minn == 3 and maxn == 4:
+    mesh_type = 'mixed-tris-and-quads'
+else:
+    mesh_type = 'mixed-polygons'
+    
+print('Mesh type: %s' % mesh_type)
+if force_subdivision_mesh:
+    print('Forcing subdivision mesh')
     
 vertices = plymesh['vertices']
 vertices = vertices.reshape((-1, 3))
 
 indices = plymesh['faces']
-indices = indices.reshape((-1, 3))
 
-mesh = ospray.Geometry('mesh')
+colors = None
+if 'vertex_colors' in plymesh:
+    colors = plymesh['vertex_colors'].reshape((-1, 3))
+    n = colors.shape[0]
+    alpha = numpy.ones((n,1), dtype=numpy.float32)
+    colors = numpy.hstack((colors, alpha))
+    print(colors.shape, colors.dtype)
+
+if mesh_type.startswith('pure-') and not force_subdivision_mesh:
+    mesh = ospray.Geometry('mesh')
+    indices = indices.reshape((-1, minn))
+    mesh.set_param('index', indices)
+elif mesh_type == 'mixed-tris-and-quads' and not force_subdivision_mesh and False:
+    # XXX could include triangles by duplicating last index
+    pass
+else:
+    # Use subdivision surface
+    mesh = ospray.Geometry('subdivision')
+    mesh.set_param('level', 0)
+    mesh.set_param('index', indices)
+    mesh.set_param('face', loop_length)
+
 mesh.set_param('vertex.position', vertices)
-#mesh.set_param('vertex.color', color)
-mesh.set_param('index', indices)
+if colors is not None:
+    mesh.set_param('vertex.color', colors)
+
 mesh.commit()
 
 gmodel = ospray.GeometricModel(mesh)
@@ -68,17 +105,17 @@ camera.commit()
 instance = ospray.Instance(group)
 instance.commit()
 
-material = ospray.Material('pathtracer', 'Metal')
-material.set_param('eta', (0.07, 0.37, 1.5))
-material.set_param('k', (3.7, 2.3, 1.7))
-material.set_param('roughness', 0.5)
-material.commit()
+#material = ospray.Material('pathtracer', 'Metal')
+#material.set_param('eta', (0.07, 0.37, 1.5))
+#material.set_param('k', (3.7, 2.3, 1.7))
+#material.set_param('roughness', 0.5)
+#material.commit()
 
 # Broken?
-#material = ospray.Material('pathtracer', 'OBJMaterial')
+material = ospray.Material('pathtracer', 'OBJMaterial')
 #material.set_param('Kd', (0, 0, 1))
 #material.set_param('Ns', 1.0)
-#material.commit()
+material.commit()
 
 gmodel.set_param('material', material)
 gmodel.commit()

@@ -112,6 +112,9 @@ img.save('colors.png')
 - Python-style method naming, so `set_param()` in Python for `setParam()` in C++
 - NumPy arrays for passing larger arrays of numbers, tuples for small single-dimensional
   values such as `vec3f`'s.
+- Framebuffer `map()`/`unmap()` is not wrapped, but instead a method `get(channel, imgsize, format)`
+  is available that directly provides the requested framebuffer channel as
+  a NumPy array.
 
 ## Automatic data type mapping
 
