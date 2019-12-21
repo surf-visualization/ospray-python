@@ -48,27 +48,26 @@ gmodel = ospray.GeometricModel(mesh)
 gmodel.commit()
 
 group = ospray.Group()
-group.set_param('geometry', ospray.Data(gmodel))
+group.set_param('geometry', [gmodel])
 group.commit()
 
 instance = ospray.Instance(group)
 instance.commit()
 
-material = ospray.Material('pathtracer', 'MetallicPaint')
-material.set_param('baseColor', (0.9, 0, 0.9))
+material = ospray.Material('pathtracer', 'OBJMaterial')
 material.commit()
 
 gmodel.set_param('material', material)
 gmodel.commit()
 
 world = ospray.World()
-world.set_param('instance', ospray.Data(instance))
+world.set_param('instance', [instance])
 
 light = ospray.Light('ambient')
 #light.set_param('color', (1, 1, 1))
 light.commit()
 
-world.set_param('light', ospray.Data(light))
+world.set_param('light', [light])
 world.commit()
 #print(world.get_bounds())
 
