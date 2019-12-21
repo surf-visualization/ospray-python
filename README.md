@@ -51,9 +51,9 @@ camera.set_param('up', cam_up)
 camera.commit()
 
 mesh = ospray.Geometry('mesh')
-mesh.set_param('vertex.position', ospray.Data(vertex))
-mesh.set_param('vertex.color', ospray.Data(color))
-mesh.set_param('index', ospray.Data(index))
+mesh.set_param('vertex.position', vertex)
+mesh.set_param('vertex.color', color)
+mesh.set_param('index', index)
 mesh.commit()
 
 gmodel = ospray.GeometricModel(mesh)
@@ -110,21 +110,29 @@ img.save('colors.png')
 
 * One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`.
 * Python-style method naming, so `set_param()` in Python for `setParam()` in C++
-* NumPy arrays for passing arrays of numbers
+* NumPy arrays for passing larger arrays of numbers, tuples for small single-dimensional
+  values such as `vec3f`'s.
 
 When setting parameter values with `set_param()` certain Python values 
-are automatically converted to OSPRay types.
+are automatically converted to OSPRay types:
 
-| Python                    | Mapped to (C++)           | Remarks/Limitations |
-| ---                       | ---                       | --- |
-| 2/3/4-tuple (float, int)  | `ospcommon::math::vecXY`  | Bool not supported yet |
-| NumPy array               | `ospray::cpp::Data`       | Only for 1 and 2 dimensional arrays of floats |
-| List of OSPRay objects    | `ospray::cpp::Data`       | Only for GeometricModel, Instance, Light |
-
-Notes:
+- Tuples of floats or ints, that are of length 2, 3 or 4 are converted
+  to the corresponding `ospcommon::math::vec<n>[if]` types. 
+  
+- Single-dimensional NumPy arrays of length 2, 3 and 4 are also converted
+  to a single value of the corresponding `ospcommon::math::vecXY` type. 
+  
+- Two-dimensional NumPy arrays are converted to `ospray::cpp::Data` values
+  of the corresponding type, based on the second dimension of the array.
+  E.g. a NumPy array of shape (N,3) of floats is converted to a `Data` object
+  of `ospcommon::math::vec3f` values.
 
 - Passing regular lists of Python numbers is not supported. Use
   NumPy arrays for those cases.
+  
+- Lists of OSPRay objects are turned into a `Data` array. The list items
+  must all have the same type and are currently limited to GeometricModel, 
+  Instance and Material. 
 
 Examples:
 
@@ -140,6 +148,11 @@ index = numpy.array([
 mesh = ospray.Geometry('mesh')
 mesh.set_param('index', index)
 
-# List of objects to ospray::cpp::Data
+# NumPy array to ospcommon::math::vec3f
+cam_pos = numpy.array([1, 2, 3.5], dtype=numpy.float32)
+camera = ospray.Camera('perspective')
+camera.set_param('position', cam_pos)
+
+# List of scene objects to ospray::cpp::Data
 world.set_param('light', [light1,light2])
 ```

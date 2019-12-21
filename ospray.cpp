@@ -134,7 +134,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
     
     if (n < 2 || n > 4)
     {
-        printf("ERROR: tuple length should be in range [2,4]!\n");
+        printf("ERROR: tuple length for '%s' should be in range [2,4]!\n", name.c_str());
         return;
     }
 
@@ -162,7 +162,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             self.setParam(name, vvalue);
         }
         else
-            printf("WARNING: unhandled data type (%s) in set_param_tuple()!\n", firstcls.c_str());
+            printf("WARNING: unhandled data type (%s) in set_param_tuple(..., '%s', ...)!\n", firstcls.c_str(), name.c_str());
     }
     
     else if (n == 3)
@@ -188,8 +188,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             self.setParam(name, vvalue);
         }
         else
-            printf("WARNING: unhandled data type (%s) in set_param_tuple()!\n", firstcls.c_str());
-
+            printf("WARNING: unhandled data type (%s) in set_param_tuple(..., '%s', ...)!\n", firstcls.c_str(), name.c_str());
     }
     
     else if (n == 4)
@@ -217,7 +216,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             self.setParam(name, vvalue);
         }
         else
-            printf("WARNING: unhandled data type (%s) in set_param_tuple()!\n", firstcls.c_str());
+            printf("WARNING: unhandled data type (%s) in set_param_tuple(..., '%s', ...)!\n", firstcls.c_str(), name.c_str());
     }
 }
 
@@ -278,40 +277,50 @@ template<typename T>
 void
 set_param_numpy_array(T &self, const std::string &name, py::array& array)
 {
-    self.setParam(name, data_constructor(array));
-    
-#if 0
-    
-    
     const int ndim = array.ndim();
+    const int n = array.shape(0);
+    
+    if (ndim > 1 || n < 2 || n > 4)
+    {
+        self.setParam(name, data_constructor(array));
+        return;
+    }
+    
     const py::dtype& dtype = array.dtype();
     
-    if (ndim == 1)
+    if (dtype.is(pybind11::dtype::of<float>()))
     {
-        const int n = array.shape(0);
+        const float *values = (float*)(array.data());
         
-        if (dtype.is(pybind11::dtype::of<float>()) && n == 3)
-        {
-            const ospcommon::math::vec3f varray(array.data());
-            self.setParam(name, varray);
-        }
-        else if (dtype.is(pybind11::dtype::of<float>()) && n == 4)
-        {
-            const ospcommon::math::vec4f varray(array.data());
-            self.setParam(name, varray);
-        }
+        if (n == 2)
+            self.setParam(name, ospcommon::math::vec2f(values));
+        else if (n == 3)
+            self.setParam(name, ospcommon::math::vec3f(values));
+        else if (n == 4)
+            self.setParam(name, ospcommon::math::vec4f(values));
     }
-    else if (ndim == 2)
+    else if (dtype.is(pybind11::dtype::of<int>()))
     {
-        const int n = array.shape(0);
-        const int p = array.shape(1);
+        const int *values = (int*)(array.data()); 
         
-        if (dtype.is(pybind11::dtype::of<float>()) && p == 3)
-        {
-            self.setParam(name, ospray::cpp::Data(n*p, array.data()));
-        }
+        if (n == 2)
+            self.setParam(name, ospcommon::math::vec2i(values));
+        else if (n == 3)
+            self.setParam(name, ospcommon::math::vec3i(values));
+        else if (n == 4)
+            self.setParam(name, ospcommon::math::vec4i(values));
     }
-#endif
+    else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+    {
+        const uint32_t *values = (uint32_t*)(array.data()); 
+        
+        if (n == 2)
+            self.setParam(name, ospcommon::math::vec2ui(values));
+        else if (n == 3)
+            self.setParam(name, ospcommon::math::vec3ui(values));
+        else if (n == 4)
+            self.setParam(name, ospcommon::math::vec4ui(values));
+    }
 }
 
 ospray::cpp::FrameBuffer

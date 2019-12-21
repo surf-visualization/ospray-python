@@ -33,9 +33,9 @@ indices = plymesh['faces']
 indices = indices.reshape((-1, 3))
 
 mesh = ospray.Geometry('mesh')
-mesh.set_param('vertex.position', ospray.Data(vertices))
-#mesh.set_param('vertex.color', ospray.Data(color))
-mesh.set_param('index', ospray.Data(indices))
+mesh.set_param('vertex.position', vertices)
+#mesh.set_param('vertex.color', color)
+mesh.set_param('index', indices)
 mesh.commit()
 
 gmodel = ospray.GeometricModel(mesh)
@@ -54,9 +54,9 @@ print(center)
     
 position = center + 3*(bound[1] - center)
 
-cam_pos = tuple(position)
+cam_pos = position
 cam_up = (0.0, 0.0, 1.0)
-cam_view = tuple(center - position)
+cam_view = center - position
 
 camera = ospray.Camera('perspective')
 camera.set_param('aspect', W/H)
