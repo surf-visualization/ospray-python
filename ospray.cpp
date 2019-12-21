@@ -5,6 +5,19 @@
 
 namespace py = pybind11;
 
+typedef ospray::cpp::ManagedObject<OSPCamera, OSP_CAMERA>                   ManagedCamera;
+typedef ospray::cpp::ManagedObject<OSPData, OSP_DATA>                       ManagedData;
+typedef ospray::cpp::ManagedObject<OSPFrameBuffer, OSP_FRAMEBUFFER>         ManagedFrameBuffer;
+typedef ospray::cpp::ManagedObject<OSPFuture, OSP_FUTURE>                   ManagedFuture;
+typedef ospray::cpp::ManagedObject<OSPGeometricModel, OSP_GEOMETRIC_MODEL>  ManagedGeometricModel;
+typedef ospray::cpp::ManagedObject<OSPGeometry, OSP_GEOMETRY>               ManagedGeometry;
+typedef ospray::cpp::ManagedObject<OSPGroup, OSP_GROUP>                     ManagedGroup;
+typedef ospray::cpp::ManagedObject<OSPInstance, OSP_INSTANCE>               ManagedInstance;
+typedef ospray::cpp::ManagedObject<OSPLight, OSP_LIGHT>                     ManagedLight;
+typedef ospray::cpp::ManagedObject<OSPMaterial, OSP_MATERIAL>               ManagedMaterial;
+typedef ospray::cpp::ManagedObject<OSPRenderer, OSP_RENDERER>               ManagedRenderer;
+typedef ospray::cpp::ManagedObject<OSPWorld, OSP_WORLD>                     ManagedWorld;
+
 OSPError
 init(const std::vector<std::string>& args)
 {
@@ -80,7 +93,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             self.setParam(name, vvalue);
         }
         else
-            printf("WARNING: unhandled data type in set_param_tuple!\n");
+            printf("WARNING: unhandled data type in set_param_tuple()!\n");
     }
     
     else if (n == 3)
@@ -106,7 +119,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             self.setParam(name, vvalue);
         }
         else
-            printf("WARNING: unhandled data type in set_param_tuple!\n");
+            printf("WARNING: unhandled data type in set_param_tuple()!\n");
     }
     
     else if (n == 4)
@@ -134,11 +147,57 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             self.setParam(name, vvalue);
         }
         else
-            printf("WARNING: unhandled data type in set_param_tuple!\n");
+            printf("WARNING: unhandled data type in set_param_tuple()!\n");
     }
     
     else
-        printf("WARNING: unhandled tuple length %lu set_param_tuple!\n", n);
+        printf("WARNING: unhandled tuple length %lu set_param_tuple()!\n", n);
+}
+
+template<typename T>
+ospray::cpp::Data
+build_data_list(const std::string& listcls, const py::list &values)
+{
+    std::vector<T> items;
+        
+    for (size_t i = 0; i < values.size(); i++)
+    {
+        auto item = values[i];
+        std::string itemcls = item.get_type().attr("__name__").cast<std::string>();
+        
+        if (itemcls != listcls)
+        {
+            printf("ERROR: item %lu in list is not of type %s, but of type %s!\n", 
+                i, listcls.c_str(), itemcls.c_str());
+            
+            return ospray::cpp::Data();
+        }
+        
+        items.push_back(values[i].cast<T>());
+    }
+    
+    return ospray::cpp::Data(items);
+}
+
+// List assumed to only contain OSPObject's of the same type
+template<typename T>
+void
+set_param_list(T &self, const std::string &name, const py::list &values)
+{
+    auto first = values[0];
+    
+    std::string listcls = first.get_type().attr("__name__").cast<std::string>();
+    
+    printf("%s\n", listcls.c_str());
+    
+    if (listcls == "GeometricModel")
+        self.setParam(name, build_data_list<ospray::cpp::GeometricModel>(listcls, values));
+    else if (listcls == "Instance")
+        self.setParam(name, build_data_list<ospray::cpp::Instance>(listcls, values));
+    else if (listcls == "Light")
+        self.setParam(name, build_data_list<ospray::cpp::Light>(listcls, values));
+    else
+        printf("WARNING: unhandled list with items of type %s in set_param_list()!\n", listcls.c_str());
 }
 
 template<typename T>
@@ -303,24 +362,12 @@ declare_managedobject_methods(py::module& m, const char *name)
         .def("set_param", &set_param_data<T>)
         .def("set_param", &set_param_numpy_array<T>)
         .def("set_param", &set_param_tuple<T>)
+        .def("set_param", &set_param_list<T>)
         .def("set_param", &set_param_material<T>)
         .def("commit", &T::commit)
         .def("get_bounds", &get_bounds<T>)
     ;
 }
-
-typedef ospray::cpp::ManagedObject<OSPCamera, OSP_CAMERA>                   ManagedCamera;
-typedef ospray::cpp::ManagedObject<OSPData, OSP_DATA>                       ManagedData;
-typedef ospray::cpp::ManagedObject<OSPFrameBuffer, OSP_FRAMEBUFFER>         ManagedFrameBuffer;
-typedef ospray::cpp::ManagedObject<OSPFuture, OSP_FUTURE>                   ManagedFuture;
-typedef ospray::cpp::ManagedObject<OSPGeometricModel, OSP_GEOMETRIC_MODEL>  ManagedGeometricModel;
-typedef ospray::cpp::ManagedObject<OSPGeometry, OSP_GEOMETRY>               ManagedGeometry;
-typedef ospray::cpp::ManagedObject<OSPGroup, OSP_GROUP>                     ManagedGroup;
-typedef ospray::cpp::ManagedObject<OSPInstance, OSP_INSTANCE>               ManagedInstance;
-typedef ospray::cpp::ManagedObject<OSPLight, OSP_LIGHT>                     ManagedLight;
-typedef ospray::cpp::ManagedObject<OSPMaterial, OSP_MATERIAL>               ManagedMaterial;
-typedef ospray::cpp::ManagedObject<OSPRenderer, OSP_RENDERER>               ManagedRenderer;
-typedef ospray::cpp::ManagedObject<OSPWorld, OSP_WORLD>                     ManagedWorld;
 
 PYBIND11_MODULE(ospray, m) 
 {

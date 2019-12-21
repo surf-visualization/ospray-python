@@ -5,3 +5,4 @@ Originally just to try out [pybind11](https://github.com/pybind/pybind11),
 but they are pretty useful in their current state, as Pybind11 is an amazing little
 library (inpsired by the just-as-great Boost.Python).
 
+Note that this code is targeted at the 2.0.x branch of OSPRay.
