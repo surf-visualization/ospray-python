@@ -39,9 +39,9 @@ camera.set_param('up', cam_up)
 camera.commit()
 
 mesh = ospray.Geometry('mesh')
-mesh.set_param('vertex.position', ospray.Data(vertex))
-mesh.set_param('vertex.color', ospray.Data(color))
-mesh.set_param('index', ospray.Data(index))
+mesh.set_param('vertex.position', vertex)
+mesh.set_param('vertex.color', color)
+mesh.set_param('index', index)
 mesh.commit()
 
 gmodel = ospray.GeometricModel(mesh)

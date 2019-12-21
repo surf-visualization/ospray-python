@@ -38,209 +38,6 @@ init(const std::vector<std::string>& args)
     return res;
 }
 
-template<typename T>
-void
-set_param_bool(T &self, const std::string &name, const bool &value)
-{
-    self.setParam(name, value);
-}
-
-template<typename T>
-void
-set_param_float(T &self, const std::string &name, const float &value)
-{
-    self.setParam(name, value);
-}
-
-template<typename T>
-void
-set_param_int(T &self, const std::string &name, const int &value)
-{
-    self.setParam(name, value);
-}
-
-template<typename T>
-void
-set_param_data(T &self, const std::string &name, const ospray::cpp::Data &data)
-{
-    self.setParam(name, data);
-}
-
-template<typename T>
-void
-set_param_tuple(T &self, const std::string &name, const py::tuple &value)
-{
-    auto n = value.size();
-    
-    if (n == 2)
-    {
-        if (py::isinstance<py::int_>(value[0]))
-        {
-            ospcommon::math::vec2i vvalue;
-            
-            vvalue.x = py::cast<int>(value[0]);
-            vvalue.y = py::cast<int>(value[1]);
-            
-            self.setParam(name, vvalue);
-        }
-        else if (py::isinstance<py::float_>(value[0]))
-        {
-            ospcommon::math::vec2f vvalue;
-            
-            vvalue.x = py::cast<float>(value[0]);
-            vvalue.y = py::cast<float>(value[1]);
-            
-            self.setParam(name, vvalue);
-        }
-        else
-            printf("WARNING: unhandled data type in set_param_tuple()!\n");
-    }
-    
-    else if (n == 3)
-    {
-        if (py::isinstance<py::int_>(value[0]))
-        {
-            ospcommon::math::vec3i vvalue;
-            
-            vvalue.x = py::cast<int>(value[0]);
-            vvalue.y = py::cast<int>(value[1]);
-            vvalue.z = py::cast<int>(value[2]);
-            
-            self.setParam(name, vvalue);
-        }
-        else if (py::isinstance<py::float_>(value[0]))
-        {
-            ospcommon::math::vec3f vvalue;
-            
-            vvalue.x = py::cast<float>(value[0]);
-            vvalue.y = py::cast<float>(value[1]);
-            vvalue.z = py::cast<float>(value[2]);
-            
-            self.setParam(name, vvalue);
-        }
-        else
-            printf("WARNING: unhandled data type in set_param_tuple()!\n");
-    }
-    
-    else if (n == 4)
-    {
-        if (py::isinstance<py::int_>(value[0]))
-        {
-            ospcommon::math::vec4i vvalue;
-            
-            vvalue.x = py::cast<int>(value[0]);
-            vvalue.y = py::cast<int>(value[1]);
-            vvalue.z = py::cast<int>(value[2]);
-            vvalue.w = py::cast<int>(value[3]);
-            
-            self.setParam(name, vvalue);
-        }
-        else if (py::isinstance<py::float_>(value[0]))
-        {
-            ospcommon::math::vec4f vvalue;
-            
-            vvalue.x = py::cast<float>(value[0]);
-            vvalue.y = py::cast<float>(value[1]);
-            vvalue.z = py::cast<float>(value[2]);
-            vvalue.w = py::cast<float>(value[3]);
-            
-            self.setParam(name, vvalue);
-        }
-        else
-            printf("WARNING: unhandled data type in set_param_tuple()!\n");
-    }
-    
-    else
-        printf("WARNING: unhandled tuple length %lu set_param_tuple()!\n", n);
-}
-
-template<typename T>
-ospray::cpp::Data
-build_data_list(const std::string& listcls, const py::list &values)
-{
-    std::vector<T> items;
-        
-    for (size_t i = 0; i < values.size(); i++)
-    {
-        auto item = values[i];
-        std::string itemcls = item.get_type().attr("__name__").cast<std::string>();
-        
-        if (itemcls != listcls)
-        {
-            printf("ERROR: item %lu in list is not of type %s, but of type %s!\n", 
-                i, listcls.c_str(), itemcls.c_str());
-            
-            return ospray::cpp::Data();
-        }
-        
-        items.push_back(values[i].cast<T>());
-    }
-    
-    return ospray::cpp::Data(items);
-}
-
-// List assumed to only contain OSPObject's of the same type
-template<typename T>
-void
-set_param_list(T &self, const std::string &name, const py::list &values)
-{
-    auto first = values[0];
-    
-    std::string listcls = first.get_type().attr("__name__").cast<std::string>();
-    
-    printf("%s\n", listcls.c_str());
-    
-    if (listcls == "GeometricModel")
-        self.setParam(name, build_data_list<ospray::cpp::GeometricModel>(listcls, values));
-    else if (listcls == "Instance")
-        self.setParam(name, build_data_list<ospray::cpp::Instance>(listcls, values));
-    else if (listcls == "Light")
-        self.setParam(name, build_data_list<ospray::cpp::Light>(listcls, values));
-    else
-        printf("WARNING: unhandled list with items of type %s in set_param_list()!\n", listcls.c_str());
-}
-
-template<typename T>
-void
-set_param_material(T& self, const std::string &name, const ospray::cpp::Material &value)
-{
-    self.setParam(name, value);
-}
-
-template<typename T>
-void
-set_param_numpy_array(T &self, const std::string &name, py::array_t<float, py::array::c_style | py::array::forcecast> array)
-{
-    const int ndim = array.ndim();
-    const py::dtype& dtype = array.dtype();
-    
-    if (ndim == 1)
-    {
-        const int n = array.shape(0);
-        
-        if (dtype.is(pybind11::dtype::of<float>()) && n == 3)
-        {
-            const ospcommon::math::vec3f varray(array.data());
-            self.setParam(name, varray);
-        }
-        else if (dtype.is(pybind11::dtype::of<float>()) && n == 4)
-        {
-            const ospcommon::math::vec4f varray(array.data());
-            self.setParam(name, varray);
-        }
-    }
-    else if (ndim == 2)
-    {
-        const int n = array.shape(0);
-        const int p = array.shape(1);
-        
-        if (dtype.is(pybind11::dtype::of<float>()) && p == 3)
-        {
-            self.setParam(name, ospray::cpp::Data(n*p, array.data()));
-        }
-    }
-}
-
 ospray::cpp::Data
 data_constructor(py::array& array)
 {
@@ -301,6 +98,222 @@ data_constructor(py::array& array)
     return ospray::cpp::Data();
 }
 
+template<typename T>
+void
+set_param_bool(T &self, const std::string &name, const bool &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
+set_param_float(T &self, const std::string &name, const float &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
+set_param_int(T &self, const std::string &name, const int &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
+set_param_data(T &self, const std::string &name, const ospray::cpp::Data &data)
+{
+    self.setParam(name, data);
+}
+
+template<typename T>
+void
+set_param_tuple(T &self, const std::string &name, const py::tuple &value)
+{
+    auto n = value.size();
+    
+    if (n < 2 || n > 4)
+    {
+        printf("ERROR: tuple length should be in range [2,4]!\n");
+        return;
+    }
+
+    auto first = value[0];
+    std::string firstcls = first.get_type().attr("__name__").cast<std::string>();
+    
+    if (n == 2)
+    {
+        if (py::isinstance<py::int_>(value[0]))
+        {
+            ospcommon::math::vec2i vvalue;
+            
+            vvalue.x = py::cast<int>(value[0]);
+            vvalue.y = py::cast<int>(value[1]);
+            
+            self.setParam(name, vvalue);
+        }
+        else if (py::isinstance<py::float_>(value[0]))
+        {
+            ospcommon::math::vec2f vvalue;
+            
+            vvalue.x = py::cast<float>(value[0]);
+            vvalue.y = py::cast<float>(value[1]);
+            
+            self.setParam(name, vvalue);
+        }
+        else
+            printf("WARNING: unhandled data type (%s) in set_param_tuple()!\n", firstcls.c_str());
+    }
+    
+    else if (n == 3)
+    {
+        if (py::isinstance<py::int_>(value[0]))
+        {
+            ospcommon::math::vec3i vvalue;
+            
+            vvalue.x = py::cast<int>(value[0]);
+            vvalue.y = py::cast<int>(value[1]);
+            vvalue.z = py::cast<int>(value[2]);
+            
+            self.setParam(name, vvalue);
+        }
+        else if (py::isinstance<py::float_>(value[0]))
+        {
+            ospcommon::math::vec3f vvalue;
+            
+            vvalue.x = py::cast<float>(value[0]);
+            vvalue.y = py::cast<float>(value[1]);
+            vvalue.z = py::cast<float>(value[2]);
+            
+            self.setParam(name, vvalue);
+        }
+        else
+            printf("WARNING: unhandled data type (%s) in set_param_tuple()!\n", firstcls.c_str());
+
+    }
+    
+    else if (n == 4)
+    {
+        if (py::isinstance<py::int_>(value[0]))
+        {
+            ospcommon::math::vec4i vvalue;
+            
+            vvalue.x = py::cast<int>(value[0]);
+            vvalue.y = py::cast<int>(value[1]);
+            vvalue.z = py::cast<int>(value[2]);
+            vvalue.w = py::cast<int>(value[3]);
+            
+            self.setParam(name, vvalue);
+        }
+        else if (py::isinstance<py::float_>(value[0]))
+        {
+            ospcommon::math::vec4f vvalue;
+            
+            vvalue.x = py::cast<float>(value[0]);
+            vvalue.y = py::cast<float>(value[1]);
+            vvalue.z = py::cast<float>(value[2]);
+            vvalue.w = py::cast<float>(value[3]);
+            
+            self.setParam(name, vvalue);
+        }
+        else
+            printf("WARNING: unhandled data type (%s) in set_param_tuple()!\n", firstcls.c_str());
+    }
+}
+
+template<typename T>
+ospray::cpp::Data
+build_data_list(const std::string& listcls, const py::list &values)
+{
+    std::vector<T> items;
+        
+    for (size_t i = 0; i < values.size(); i++)
+    {
+        auto item = values[i];
+        std::string itemcls = item.get_type().attr("__name__").cast<std::string>();
+        
+        if (itemcls != listcls)
+        {
+            printf("ERROR: item %lu in list is not of type %s, but of type %s!\n", 
+                i, listcls.c_str(), itemcls.c_str());
+            
+            return ospray::cpp::Data();
+        }
+        
+        items.push_back(values[i].cast<T>());
+    }
+    
+    return ospray::cpp::Data(items);
+}
+
+// List assumed to only contain OSPObject's of the same type
+template<typename T>
+void
+set_param_list(T &self, const std::string &name, const py::list &values)
+{
+    auto first = values[0];
+    
+    std::string listcls = first.get_type().attr("__name__").cast<std::string>();
+    
+    printf("%s\n", listcls.c_str());
+    
+    if (listcls == "GeometricModel")
+        self.setParam(name, build_data_list<ospray::cpp::GeometricModel>(listcls, values));
+    else if (listcls == "Instance")
+        self.setParam(name, build_data_list<ospray::cpp::Instance>(listcls, values));
+    else if (listcls == "Light")
+        self.setParam(name, build_data_list<ospray::cpp::Light>(listcls, values));
+    else
+        printf("WARNING: unhandled list with items of type %s in set_param_list()!\n", listcls.c_str());
+}
+
+template<typename T>
+void
+set_param_material(T& self, const std::string &name, const ospray::cpp::Material &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
+set_param_numpy_array(T &self, const std::string &name, py::array& array)
+{
+    self.setParam(name, data_constructor(array));
+    
+#if 0
+    
+    
+    const int ndim = array.ndim();
+    const py::dtype& dtype = array.dtype();
+    
+    if (ndim == 1)
+    {
+        const int n = array.shape(0);
+        
+        if (dtype.is(pybind11::dtype::of<float>()) && n == 3)
+        {
+            const ospcommon::math::vec3f varray(array.data());
+            self.setParam(name, varray);
+        }
+        else if (dtype.is(pybind11::dtype::of<float>()) && n == 4)
+        {
+            const ospcommon::math::vec4f varray(array.data());
+            self.setParam(name, varray);
+        }
+    }
+    else if (ndim == 2)
+    {
+        const int n = array.shape(0);
+        const int p = array.shape(1);
+        
+        if (dtype.is(pybind11::dtype::of<float>()) && p == 3)
+        {
+            self.setParam(name, ospray::cpp::Data(n*p, array.data()));
+        }
+    }
+#endif
+}
+
 ospray::cpp::FrameBuffer
 framebuffer_create(py::tuple& imgsize, OSPFrameBufferFormat format, int channels)
 {
@@ -359,10 +372,10 @@ declare_managedobject_methods(py::module& m, const char *name)
         .def("set_param", &set_param_bool<T>)
         .def("set_param", &set_param_int<T>)
         .def("set_param", &set_param_float<T>)
-        .def("set_param", &set_param_data<T>)
-        .def("set_param", &set_param_numpy_array<T>)
         .def("set_param", &set_param_tuple<T>)
         .def("set_param", &set_param_list<T>)
+        .def("set_param", &set_param_data<T>)
+        .def("set_param", &set_param_numpy_array<T>)
         .def("set_param", &set_param_material<T>)
         .def("commit", &T::commit)
         .def("get_bounds", &get_bounds<T>)

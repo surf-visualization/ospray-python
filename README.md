@@ -105,3 +105,41 @@ colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img.save('colors.png')
 ```
+
+## Conventions and automatic data type mapping
+
+* One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`.
+* Python-style method naming, so `set_param()` in Python for `setParam()` in C++
+* NumPy arrays for passing arrays of numbers
+
+When setting parameter values with `set_param()` certain Python values 
+are automatically converted to OSPRay types.
+
+| Python                    | Mapped to (C++)           | Remarks/Limitations |
+| ---                       | ---                       | --- |
+| 2/3/4-tuple (float, int)  | `ospcommon::math::vecXY`  | Bool not supported yet |
+| NumPy array               | `ospray::cpp::Data`       | Only for 1 and 2 dimensional arrays of floats |
+| List of OSPRay objects    | `ospray::cpp::Data`       | Only for GeometricModel, Instance, Light |
+
+Notes:
+
+- Passing regular lists of Python numbers is not supported. Use
+  NumPy arrays for those cases.
+
+Examples:
+
+```
+# Tuple -> vec3f
+light = ospray.Light('ambient')
+light.set_param('color', (1, 1, 1))
+
+# NumPy array to ospray::cpp::Data
+index = numpy.array([
+    [0, 1, 2], [1, 2, 3]
+], dtype=numpy.uint32)
+mesh = ospray.Geometry('mesh')
+mesh.set_param('index', index)
+
+# List of objects to ospray::cpp::Data
+world.set_param('light', [light1,light2])
+```
