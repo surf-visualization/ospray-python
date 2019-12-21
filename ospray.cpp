@@ -18,7 +18,7 @@ typedef ospray::cpp::ManagedObject<OSPMaterial, OSP_MATERIAL>               Mana
 typedef ospray::cpp::ManagedObject<OSPRenderer, OSP_RENDERER>               ManagedRenderer;
 typedef ospray::cpp::ManagedObject<OSPWorld, OSP_WORLD>                     ManagedWorld;
 
-OSPError
+std::vector<std::string>
 init(const std::vector<std::string>& args)
 {
     int argc = args.size();
@@ -29,13 +29,21 @@ init(const std::vector<std::string>& args)
     
     OSPError res = ospInit(&argc, argv);
     
-    // XXX return modified array?
+    if (res != OSP_NO_ERROR)
+    {
+        delete [] argv;
+        std::string msg = "ospInit() failed: " + std::to_string(res);
+        throw std::runtime_error(msg);
+    }
+    
+    std::vector<std::string> newargs;
+    
+    for (int i = 0; i < argc; i++)
+        newargs.push_back(std::string(argv[i]));
+    
     delete [] argv;
     
-    //if (res != OSP_NO_ERROR)
-    //    throw std::exception("ospInit() failed");
-    
-    return res;
+    return newargs;
 }
 
 ospray::cpp::Data

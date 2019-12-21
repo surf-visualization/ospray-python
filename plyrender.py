@@ -9,9 +9,9 @@ from readply import readply
 W = 1024
 H = 768
 
-ospray.init(sys.argv)
+argv = ospray.init(sys.argv)
 
-plyfile = sys.argv[1]
+plyfile = argv[1]
 
 plymesh = readply(plyfile)
 
