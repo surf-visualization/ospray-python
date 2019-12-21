@@ -106,21 +106,23 @@ img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img.save('colors.png')
 ```
 
-## Conventions and automatic data type mapping
+## Conventions 
 
-* One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`.
-* Python-style method naming, so `set_param()` in Python for `setParam()` in C++
-* NumPy arrays for passing larger arrays of numbers, tuples for small single-dimensional
+- One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`.
+- Python-style method naming, so `set_param()` in Python for `setParam()` in C++
+- NumPy arrays for passing larger arrays of numbers, tuples for small single-dimensional
   values such as `vec3f`'s.
+
+## Automatic data type mapping
 
 When setting parameter values with `set_param()` certain Python values 
 are automatically converted to OSPRay types:
 
 - Tuples of floats or ints, that are of length 2, 3 or 4 are converted
-  to the corresponding `ospcommon::math::vec<n>[if]` types. 
+  to the corresponding `ospcommon::math::vec<n>[i|f]` types. 
   
 - Single-dimensional NumPy arrays of length 2, 3 and 4 are also converted
-  to a single value of the corresponding `ospcommon::math::vecXY` type. 
+  to a single value of the corresponding `ospcommon::math::vec<n>[i|ui|f]` type. 
   
 - Two-dimensional NumPy arrays are converted to `ospray::cpp::Data` values
   of the corresponding type, based on the second dimension of the array.
