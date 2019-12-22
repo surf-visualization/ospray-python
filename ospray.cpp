@@ -572,30 +572,34 @@ PYBIND11_MODULE(ospray, m)
     
     // Device
     
-    /*
-    XXX Hmmm, incomplete type 'osp::Device' used in type trait expression
     m.def("get_current_device", []() {
-            return ospray::cpp::Device(ospGetCurrentDevice());
-        })
-    ;
+        return ospray::cpp::Device(ospGetCurrentDevice());
+    });
+    // Current device only
+    m.def("set_error_func", [](py::function& func) { 
+        py_error_func = func; 
+    });
+    m.def("set_status_func", [](py::function& func) { 
+        py_status_func = func; 
+    });
     
     py::class_<ospray::cpp::Device>(m, "Device")
         .def(py::init<const std::string &>(), py::arg("type")="default")
-        .def("handle", &ospray::cpp::Device::handle)
+        //.def("handle", &ospray::cpp::Device::handle)      // Leads to incomplete type 'osp::Device' used in type trait expression
+        .def("commit", &ospray::cpp::Device::commit)
+        .def("set", (void (ospray::cpp::Device::*)(const std::string &, const std::string &) const) &ospray::cpp::Device::set)
+        .def("set", (void (ospray::cpp::Device::*)(const std::string &, bool) const) &ospray::cpp::Device::set)
+        .def("set", (void (ospray::cpp::Device::*)(const std::string &, int) const) &ospray::cpp::Device::set)
+        //void set(const std::string &name, void *v) const;
     ;
-    */    
-    
-    // Current device 
-    m.def("set_error_func", [](py::function& func) { py_error_func = func; });
-    m.def("set_status_func", [](py::function& func) { py_status_func = func; });
     
     // Scene
     
-    py::class_<ospray::cpp::Camera, ManagedCamera >(m, "Camera")
+    py::class_<ospray::cpp::Camera, ManagedCamera>(m, "Camera")
         .def(py::init<const std::string &>())
     ;
 
-    py::class_<ospray::cpp::Data, ManagedData >(m, "Data")
+    py::class_<ospray::cpp::Data, ManagedData>(m, "Data")
         .def(py::init<const ospray::cpp::GeometricModel &>())
         .def(py::init<const ospray::cpp::Geometry &>())
         .def(py::init<const ospray::cpp::Instance &>())
@@ -606,7 +610,7 @@ PYBIND11_MODULE(ospray, m)
             }))
     ;
             
-    py::class_<ospray::cpp::FrameBuffer, ManagedFrameBuffer >(m, "FrameBuffer")
+    py::class_<ospray::cpp::FrameBuffer, ManagedFrameBuffer>(m, "FrameBuffer")
         .def(py::init(
             [](py::tuple& imgsize, OSPFrameBufferFormat format, int channels) {
                 return framebuffer_create(imgsize, format, channels);
@@ -622,7 +626,7 @@ PYBIND11_MODULE(ospray, m)
         //.def("unmap", &ospray::cpp::FrameBuffer::unmap)
     ;
        
-    py::class_<ospray::cpp::Future, ManagedFuture >(m, "Future")
+    py::class_<ospray::cpp::Future, ManagedFuture>(m, "Future")
         .def(py::init<>())
         .def("is_ready", &ospray::cpp::Future::isReady, py::arg("event")=OSP_TASK_FINISHED)
         .def("wait", &ospray::cpp::Future::wait, py::arg("event")=OSP_TASK_FINISHED)
@@ -630,11 +634,11 @@ PYBIND11_MODULE(ospray, m)
         .def("progress", &ospray::cpp::Future::progress)
     ;            
             
-    py::class_<ospray::cpp::GeometricModel, ManagedGeometricModel >(m, "GeometricModel")
+    py::class_<ospray::cpp::GeometricModel, ManagedGeometricModel>(m, "GeometricModel")
         .def(py::init<const ospray::cpp::Geometry &>())
     ;
     
-    py::class_<ospray::cpp::Geometry, ManagedGeometry >(m, "Geometry")
+    py::class_<ospray::cpp::Geometry, ManagedGeometry>(m, "Geometry")
         .def(py::init<const std::string &>())
     ;
     
@@ -658,7 +662,7 @@ PYBIND11_MODULE(ospray, m)
         .def(py::init<const std::string &>())
     ;
     
-    py::class_<ospray::cpp::World, ManagedWorld >(m, "World")
+    py::class_<ospray::cpp::World, ManagedWorld>(m, "World")
         .def(py::init<>())
     ;
 

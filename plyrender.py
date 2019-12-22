@@ -9,12 +9,9 @@ from readply import readply
 W = 1024
 H = 768
 
-force_subdivision_mesh = False
-subvision_level = 5
-
 argv = ospray.init(sys.argv)
 
-#print(ospray.get_current_device().handle())
+# Enable logging output
 
 def error_callback(error, details):
     print('OSPRAY ERROR: %d (%s)' % (error, details))
@@ -24,6 +21,15 @@ def status_callback(message):
     
 ospray.set_error_func(error_callback)
 ospray.set_status_func(status_callback)
+
+device = ospray.get_current_device()
+device.set('logLevel', 1)
+device.commit()
+
+# Parse arguments
+
+force_subdivision_mesh = False
+subvision_level = 5
 
 optlist, args = getopt.getopt(argv[1:], 'l:s')
 
@@ -73,9 +79,13 @@ if mesh_type.startswith('pure-') and not force_subdivision_mesh:
     mesh = ospray.Geometry('mesh')
     indices = indices.reshape((-1, minn))
     mesh.set_param('index', indices)
+    # Get a OSPRAY STATUS: ospray::Mesh ignoring 'index' array with wrong element type (should be vec3ui)
+    # when passing a pure-quad index array
+    
 elif mesh_type == 'mixed-tris-and-quads' and not force_subdivision_mesh and False:
     # XXX could include triangles by duplicating last index
     pass
+
 else:
     # Use subdivision surface
     mesh = ospray.Geometry('subdivision')
