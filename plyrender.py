@@ -24,6 +24,8 @@ ospray.set_status_func(status_callback)
 
 device = ospray.get_current_device()
 device.set('logLevel', 1)
+#device.set('logOutput', 'cerr')
+#device.set('errorOutput', 'cerr')
 device.commit()
 
 # Parse arguments
