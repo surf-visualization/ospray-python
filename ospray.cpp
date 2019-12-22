@@ -18,6 +18,23 @@ typedef ospray::cpp::ManagedObject<OSPMaterial, OSP_MATERIAL>               Mana
 typedef ospray::cpp::ManagedObject<OSPRenderer, OSP_RENDERER>               ManagedRenderer;
 typedef ospray::cpp::ManagedObject<OSPWorld, OSP_WORLD>                     ManagedWorld;
 
+static py::function py_error_func;
+static py::function py_status_func;
+
+static void
+error_func(OSPError error, const char *details)
+{
+    if (py_error_func)
+        py_error_func(error, details);
+}
+
+static void
+status_func(const char *message)
+{
+    if (py_status_func)
+        py_status_func(message);
+}
+
 std::vector<std::string>
 init(const std::vector<std::string>& args)
 {
@@ -42,6 +59,12 @@ init(const std::vector<std::string>& args)
         newargs.push_back(std::string(argv[i]));
     
     delete [] argv;
+    
+    // Set C++ wrappers for error and status callbacks
+    
+    OSPDevice device = ospGetCurrentDevice();
+    ospDeviceSetErrorFunc(device, error_func);
+    ospDeviceSetStatusFunc(device, status_func);
     
     return newargs;
 }
@@ -546,6 +569,27 @@ PYBIND11_MODULE(ospray, m)
     declare_managedobject_methods<ManagedMaterial>(m, "ManagedMaterial");
     declare_managedobject_methods<ManagedRenderer>(m, "ManagedRenderer");
     declare_managedobject_methods<ManagedWorld>(m, "ManagedWorld");
+    
+    // Device
+    
+    /*
+    XXX Hmmm, incomplete type 'osp::Device' used in type trait expression
+    m.def("get_current_device", []() {
+            return ospray::cpp::Device(ospGetCurrentDevice());
+        })
+    ;
+    
+    py::class_<ospray::cpp::Device>(m, "Device")
+        .def(py::init<const std::string &>(), py::arg("type")="default")
+        .def("handle", &ospray::cpp::Device::handle)
+    ;
+    */    
+    
+    // Current device 
+    m.def("set_error_func", [](py::function& func) { py_error_func = func; });
+    m.def("set_status_func", [](py::function& func) { py_status_func = func; });
+    
+    // Scene
     
     py::class_<ospray::cpp::Camera, ManagedCamera >(m, "Camera")
         .def(py::init<const std::string &>())

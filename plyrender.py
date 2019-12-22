@@ -10,13 +10,27 @@ W = 1024
 H = 768
 
 force_subdivision_mesh = False
+subvision_level = 5
 
 argv = ospray.init(sys.argv)
 
-optlist, args = getopt.getopt(argv[1:], 's')
+#print(ospray.get_current_device().handle())
+
+def error_callback(error, details):
+    print('OSPRAY ERROR: %d (%s)' % (error, details))
+    
+def status_callback(message):
+    print('OSPRAY STATUS: %s' % message)
+    
+ospray.set_error_func(error_callback)
+ospray.set_status_func(status_callback)
+
+optlist, args = getopt.getopt(argv[1:], 'l:s')
 
 for o, a in optlist:
-    if o == '-s':
+    if o == '-l':
+        subvision_level = int(a)
+    elif o == '-s':
         force_subdivision_mesh = True
 
 plyfile = args[0]
@@ -50,10 +64,10 @@ indices = plymesh['faces']
 colors = None
 if 'vertex_colors' in plymesh:
     colors = plymesh['vertex_colors'].reshape((-1, 3))
+    # Add opacity
     n = colors.shape[0]
     alpha = numpy.ones((n,1), dtype=numpy.float32)
     colors = numpy.hstack((colors, alpha))
-    print(colors.shape, colors.dtype)
 
 if mesh_type.startswith('pure-') and not force_subdivision_mesh:
     mesh = ospray.Geometry('mesh')
@@ -65,7 +79,7 @@ elif mesh_type == 'mixed-tris-and-quads' and not force_subdivision_mesh and Fals
 else:
     # Use subdivision surface
     mesh = ospray.Geometry('subdivision')
-    mesh.set_param('level', 0)
+    mesh.set_param('level', subvision_level)
     mesh.set_param('index', indices)
     mesh.set_param('face', loop_length)
 
