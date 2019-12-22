@@ -104,14 +104,21 @@ data_constructor(py::array& array)
         return ospray::cpp::Data();
     }
     else if (ndim == 2)
-    {
-        const int w = array.shape(1);
-        
+    {        
         if (dtype.is(pybind11::dtype::of<double>()))
         {
-            printf("WARNING: attempt to pass double precision vector values, but only single-precision (float) is available\n");
+            printf("WARNING: attempt to pass double precision vector values (shape %ld x %ld), but only single-precision (float) values are supported by OSPRay!\n",
+                array.shape(0), array.shape(1));
             return ospray::cpp::Data();
         }
+        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+        {
+            printf("WARNING: attempt to pass 64-bit integer vector values (shape %ld x %ld), but these are not supported by OSPRay!\n",
+                array.shape(0), array.shape(1));
+            return ospray::cpp::Data();
+        }
+            
+        const int w = array.shape(1);
         
         if (w == 2)
         {
