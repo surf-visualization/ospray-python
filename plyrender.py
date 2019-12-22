@@ -162,13 +162,13 @@ world = ospray.World()
 world.set_param('instance', [instance])
 
 light1 = ospray.Light('ambient')
-light1.set_param('color', (1, 1, 1))
-light1.set_param('intensity', 0.2)
+light1.set_param('color', (1.0, 1.0, 1.0))
+light1.set_param('intensity', 0.4)
 light1.commit()
 
 light2 = ospray.Light('distant')
 light2.set_param('direction', cam_view)
-light2.set_param('intensity', 0.8)
+light2.set_param('intensity', 0.6)
 light2.commit()
 
 lights = [light1, light2]
