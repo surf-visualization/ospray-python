@@ -140,8 +140,21 @@ camera.set_param('direction', cam_view)
 camera.set_param('up', cam_up)
 camera.commit()
 
-instance = ospray.Instance(group)
-instance.commit()
+instance1 = ospray.Instance(group)
+instance1.set_param('xfm', ospray.affine3f.identity())
+instance1.commit()
+
+instance2 = ospray.Instance(group)
+instance2.set_param('xfm', ospray.affine3f.translate((1,0,0)))
+instance2.commit()
+
+instance3 = ospray.Instance(group)
+instance3.set_param('xfm', 
+    ospray.affine3f.translate((0,1,0)) * ospray.affine3f.rotate((0,0,1), 90)
+    )
+instance3.commit()
+
+instances = [instance1, instance2, instance3]
 
 #material = ospray.Material('pathtracer', 'Metal')
 #material.set_param('eta', (0.07, 0.37, 1.5))
@@ -159,7 +172,7 @@ gmodel.set_param('material', material)
 gmodel.commit()
 
 world = ospray.World()
-world.set_param('instance', [instance])
+world.set_param('instance', instances)
 
 light1 = ospray.Light('ambient')
 light1.set_param('color', (1.0, 1.0, 1.0))

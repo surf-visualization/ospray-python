@@ -1,7 +1,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
-#include "ospray/ospray_cpp.h"
+#include <pybind11/operators.h>
+#include <ospray/ospray_cpp.h>
+#include "conversion.h"
 
 namespace py = pybind11;
 
@@ -336,6 +338,13 @@ set_param_material(T& self, const std::string &name, const ospray::cpp::Material
 
 template<typename T>
 void
+set_param_affine3f(T& self, const std::string &name, const ospcommon::math::affine3f &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
 set_param_numpy_array(T &self, const std::string &name, py::array& array)
 {
     const int ndim = array.ndim();
@@ -447,11 +456,24 @@ declare_managedobject_methods(py::module& m, const char *name)
         .def("set_param", &set_param_data<T>)
         .def("set_param", &set_param_numpy_array<T>)
         .def("set_param", &set_param_material<T>)
+        .def("set_param", &set_param_affine3f<T>)
         .def("commit", &T::commit)
         .def("get_bounds", &get_bounds<T>)
     ;
 }
 
+ospcommon::math::affine3f 
+make_rotate(const ospcommon::math::vec3f &v, const float &f)
+{
+    return ospcommon::math::affine3f::rotate(v, f);
+}
+
+ospcommon::math::affine3f 
+make_identity()
+{
+    return ospcommon::math::affine3f(ospcommon::math::one);
+}
+ 
 PYBIND11_MODULE(ospray, m) 
 {
     m.doc() = "OSPRay bindings";
@@ -672,5 +694,26 @@ PYBIND11_MODULE(ospray, m)
     py::class_<ospray::cpp::World, ManagedWorld>(m, "World")
         .def(py::init<>())
     ;
-
+    
+    // Utility
+    
+    py::class_<ospcommon::math::affine3f>(m, "affine3f")      
+        .def_static("identity", &make_identity)
+        .def_static("scale", &ospcommon::math::affine3f::scale)
+        .def_static("translate", &ospcommon::math::affine3f::translate)
+        //.def_static("rotate", (ospcommon::math::affine3f (ospcommon::math::affine3f::*)(const ospcommon::math::vec3f &, const float &)) &ospcommon::math::affine3f::rotate)
+        .def_static("rotate", &make_rotate)        
+        .def(py::init<>())
+        .def(-py::self)        
+        .def(float() * py::self)
+        //.def(py::self / float())
+        //.def(py::self /= float())
+        //.def(py::self *= py::self())
+        //.def(py::self *= float())
+        .def(py::self + py::self)
+        .def(py::self - py::self)
+        .def(py::self * py::self)
+        .def(py::self / py::self)
+    ;
 }
+
