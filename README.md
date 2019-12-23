@@ -121,23 +121,23 @@ img.save('colors.png')
 When setting parameter values with `set_param()` certain Python values 
 are automatically converted to OSPRay types:
 
-- Tuples of floats or ints, that are of length 2, 3 or 4 are converted
-  to the corresponding `ospcommon::math::vec<n>[i|f]` types. 
+- A tuple of float or int, that is of length 2, 3 or 4 is converted
+  to a corresponding `ospcommon::math::vec<n>[i|f]` value. 
   
-- Single-dimensional NumPy arrays of length 2, 3 and 4 are also converted
+- A single-dimensional NumPy array of length 2, 3 or 4 is also converted
   to a single value of the corresponding `ospcommon::math::vec<n>[i|ui|f]` type. 
   
 - Two-dimensional NumPy arrays are converted to `ospray::cpp::Data` values
   of the corresponding type, based on the second dimension of the array.
   E.g. a NumPy array of shape (N,3) of floats is converted to a `Data` object
   of `ospcommon::math::vec3f` values.
-
-- Passing regular lists of Python numbers is not supported. Use
-  NumPy arrays for those cases.
   
 - Lists of OSPRay objects are turned into a `Data` array. The list items
   must all have the same type and are currently limited to GeometricModel, 
   Instance and Material. 
+
+- Passing regular lists of Python numbers is not supported. Use
+  NumPy arrays for those cases.
 
 Examples:
 
