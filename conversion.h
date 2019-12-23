@@ -8,16 +8,16 @@ namespace pybind11 { namespace detail {
     template <> struct type_caster<ospcommon::math::vec3f> {
     public:
         /**
-         * This macro establishes the name 'inty' in
+         * This macro establishes the name 'ospcommon::math::vec3f' in
          * function signatures and declares a local variable
-         * 'value' of type inty
+         * 'value' of type ospcommon::math::vec3f
          */
         PYBIND11_TYPE_CASTER(ospcommon::math::vec3f, _("ospcommon::math::vec3f"));
 
         /**
          * Conversion part 1 (Python->C++): convert a PyObject into an
-         * instance or return false upon failure. The second argument
-         * indicates whether implicit conversions should be applied.
+         * ospcommon::math::vec3f instance or return false upon failure. 
+         * The second argument indicates whether implicit conversions should be applied.
          */
         bool load(handle src, bool) 
         {
@@ -37,8 +37,8 @@ namespace pybind11 { namespace detail {
         }
 
         /**
-         * Conversion part 2 (C++ -> Python): convert an instance into
-         * a Python object. The second and third arguments are used to
+         * Conversion part 2 (C++ -> Python): convert an ospcommon::math::vec3f 
+         * instance into a Python object. The second and third arguments are used to
          * indicate the return value policy and parent object (for
          * ``return_value_policy::reference_internal``) and are generally
          * ignored by implicit casters.

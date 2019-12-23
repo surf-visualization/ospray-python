@@ -3,6 +3,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/operators.h>
 #include <ospray/ospray_cpp.h>
+#include "enums.h"
 #include "conversion.h"
 
 namespace py = pybind11;
@@ -478,111 +479,7 @@ PYBIND11_MODULE(ospray, m)
 {
     m.doc() = "OSPRay bindings";
     
-    py::enum_<OSPDataType>(m, "OSPDataType")
-        .value("OSP_DEVICE", OSPDataType::OSP_DEVICE)
-        .value("OSP_VOID_PTR", OSPDataType::OSP_VOID_PTR)
-        .value("OSP_BOOL", OSPDataType::OSP_BOOL)
-        .value("OSP_OBJECT", OSPDataType::OSP_OBJECT)
-        .value("OSP_DATA", OSPDataType::OSP_DATA)
-        .value("OSP_CAMERA", OSPDataType::OSP_CAMERA)
-        .value("OSP_FRAMEBUFFER", OSPDataType::OSP_FRAMEBUFFER)
-        .value("OSP_FUTURE", OSPDataType::OSP_FUTURE)
-        .value("OSP_GEOMETRIC_MODEL", OSPDataType::OSP_GEOMETRIC_MODEL)
-        .value("OSP_GEOMETRY", OSPDataType::OSP_GEOMETRY)
-        .value("OSP_GROUP", OSPDataType::OSP_GROUP)
-        .value("OSP_IMAGE_OPERATION", OSPDataType::OSP_IMAGE_OPERATION)
-        .value("OSP_INSTANCE", OSPDataType::OSP_INSTANCE)
-        .value("OSP_LIGHT", OSPDataType::OSP_LIGHT)
-        .value("OSP_MATERIAL", OSPDataType::OSP_MATERIAL)
-        .value("OSP_RENDERER", OSPDataType::OSP_RENDERER)
-        .value("OSP_TEXTURE", OSPDataType::OSP_TEXTURE)
-        .value("OSP_TRANSFER_FUNCTION", OSPDataType::OSP_TRANSFER_FUNCTION)
-        .value("OSP_VOLUME", OSPDataType::OSP_VOLUME)
-        .value("OSP_VOLUMETRIC_MODEL", OSPDataType::OSP_VOLUMETRIC_MODEL)
-        .value("OSP_WORLD", OSPDataType::OSP_WORLD)
-        .value("OSP_STRING", OSPDataType::OSP_STRING)
-        .value("OSP_CHAR", OSPDataType::OSP_CHAR)
-        .value("OSP_UCHAR", OSPDataType::OSP_UCHAR)
-        .value("OSP_VEC2UC", OSPDataType::OSP_VEC2UC)
-        .value("OSP_VEC3UC", OSPDataType::OSP_VEC3UC)
-        .value("OSP_VEC4UC", OSPDataType::OSP_VEC4UC)
-        .value("OSP_BYTE", OSPDataType::OSP_BYTE)
-        .value("OSP_RAW", OSPDataType::OSP_RAW)
-        .value("OSP_SHORT", OSPDataType::OSP_SHORT)
-        .value("OSP_USHORT", OSPDataType::OSP_USHORT)
-        .value("OSP_INT", OSPDataType::OSP_INT)
-        .value("OSP_VEC2I", OSPDataType::OSP_VEC2I)
-        .value("OSP_VEC3I", OSPDataType::OSP_VEC3I)
-        .value("OSP_VEC4I", OSPDataType::OSP_VEC4I)
-        .value("OSP_UINT", OSPDataType::OSP_UINT)
-        .value("OSP_VEC2UI", OSPDataType::OSP_VEC2UI)
-        .value("OSP_VEC3UI", OSPDataType::OSP_VEC3UI)
-        .value("OSP_VEC4UI", OSPDataType::OSP_VEC4UI)
-        .value("OSP_LONG", OSPDataType::OSP_LONG)
-        .value("OSP_VEC2L", OSPDataType::OSP_VEC2L)
-        .value("OSP_VEC3L", OSPDataType::OSP_VEC3L)
-        .value("OSP_VEC4L", OSPDataType::OSP_VEC4L)
-        .value("OSP_ULONG", OSPDataType::OSP_ULONG)
-        .value("OSP_VEC2UL", OSPDataType::OSP_VEC2UL)
-        .value("OSP_VEC3UL", OSPDataType::OSP_VEC3UL)
-        .value("OSP_VEC4UL", OSPDataType::OSP_VEC4UL)
-        .value("OSP_FLOAT", OSPDataType::OSP_FLOAT)
-        .value("OSP_VEC2F", OSPDataType::OSP_VEC2F)
-        .value("OSP_VEC3F", OSPDataType::OSP_VEC3F)
-        .value("OSP_VEC4F", OSPDataType::OSP_VEC4F)
-        .value("OSP_DOUBLE", OSPDataType::OSP_DOUBLE)
-        .value("OSP_BOX1I", OSPDataType::OSP_BOX1I)
-        .value("OSP_BOX2I", OSPDataType::OSP_BOX2I)
-        .value("OSP_BOX3I", OSPDataType::OSP_BOX3I)
-        .value("OSP_BOX4I", OSPDataType::OSP_BOX4I)
-        .value("OSP_BOX1F", OSPDataType::OSP_BOX1F)
-        .value("OSP_BOX2F", OSPDataType::OSP_BOX2F)
-        .value("OSP_BOX3F", OSPDataType::OSP_BOX3F)
-        .value("OSP_BOX4F", OSPDataType::OSP_BOX4F)
-        .value("OSP_LINEAR2F", OSPDataType::OSP_LINEAR2F)
-        .value("OSP_LINEAR3F", OSPDataType::OSP_LINEAR3F)
-        .value("OSP_AFFINE2F", OSPDataType::OSP_AFFINE2F)
-        .value("OSP_AFFINE3F", OSPDataType::OSP_AFFINE3F)
-        .value("OSP_UNKNOWN", OSPDataType::OSP_UNKNOWN)
-    ;
-    
-    py::enum_<OSPError>(m, "OSPError")
-        .value("OSP_NO_ERROR", OSPError::OSP_NO_ERROR)
-        .value("OSP_UNKNOWN_ERROR", OSPError::OSP_UNKNOWN_ERROR)
-        .value("OSP_INVALID_ARGUMENT", OSPError::OSP_INVALID_ARGUMENT)
-        .value("OSP_INVALID_OPERATION", OSPError::OSP_INVALID_OPERATION)
-        .value("OSP_OUT_OF_MEMORY", OSPError::OSP_OUT_OF_MEMORY)
-        .value("OSP_UNSUPPORTED_CPU", OSPError::OSP_UNSUPPORTED_CPU)
-        .value("OSP_VERSION_MISMATCH", OSPError::OSP_VERSION_MISMATCH)
-        .export_values()
-    ;
-    
-    py::enum_<OSPFrameBufferFormat>(m, "OSPFrameBufferFormat")
-        .value("OSP_FB_NONE", OSPFrameBufferFormat::OSP_FB_NONE)
-        .value("OSP_FB_RGBA8", OSPFrameBufferFormat::OSP_FB_RGBA8)
-        .value("OSP_FB_SRGBA", OSPFrameBufferFormat::OSP_FB_SRGBA)
-        .value("OSP_FB_RGBA32F", OSPFrameBufferFormat::OSP_FB_RGBA32F)
-        .export_values()
-    ;
-    
-    py::enum_<OSPFrameBufferChannel>(m, "OSPFrameBufferChannel")
-        .value("OSP_FB_COLOR", OSPFrameBufferChannel::OSP_FB_COLOR)
-        .value("OSP_FB_DEPTH", OSPFrameBufferChannel::OSP_FB_DEPTH)
-        .value("OSP_FB_ACCUM", OSPFrameBufferChannel::OSP_FB_ACCUM)
-        .value("OSP_FB_VARIANCE", OSPFrameBufferChannel::OSP_FB_VARIANCE)
-        .value("OSP_FB_NORMAL", OSPFrameBufferChannel::OSP_FB_NORMAL)
-        .value("OSP_FB_ALBEDO", OSPFrameBufferChannel::OSP_FB_ALBEDO)
-        .export_values()
-    ;
-    
-    py::enum_<OSPSyncEvent>(m, "OSPSyncEvent")
-        .value("OSP_NONE_FINISHED", OSPSyncEvent::OSP_NONE_FINISHED)
-        .value("OSP_WORLD_RENDERED", OSPSyncEvent::OSP_WORLD_RENDERED)
-        .value("OSP_WORLD_COMMITTED", OSPSyncEvent::OSP_WORLD_COMMITTED)
-        .value("OSP_FRAME_FINISHED", OSPSyncEvent::OSP_FRAME_FINISHED)
-        .value("OSP_TASK_FINISHED", OSPSyncEvent::OSP_TASK_FINISHED)
-        .export_values()
-    ;
+    define_enums(m);
     
     m.def("init", &init);
         
