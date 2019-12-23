@@ -75,6 +75,7 @@ define_enums(py::module& m)
         .value("OSP_AFFINE2F", OSPDataType::OSP_AFFINE2F)
         .value("OSP_AFFINE3F", OSPDataType::OSP_AFFINE3F)
         .value("OSP_UNKNOWN", OSPDataType::OSP_UNKNOWN)
+        .export_values()
     ;
     
     py::enum_<OSPError>(m, "OSPError")

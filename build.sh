@@ -2,7 +2,7 @@
 OSPRAY_DIR=$HOME/software/ospray-superbuild-git
 
 g++ \
-    -O3 -Wall \
+    -O3 -W -Wall \
     -shared -fPIC \
     -std=c++11 \
     -I $OSPRAY_DIR/include \

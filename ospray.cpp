@@ -19,6 +19,9 @@ typedef ospray::cpp::ManagedObject<OSPInstance, OSP_INSTANCE>               Mana
 typedef ospray::cpp::ManagedObject<OSPLight, OSP_LIGHT>                     ManagedLight;
 typedef ospray::cpp::ManagedObject<OSPMaterial, OSP_MATERIAL>               ManagedMaterial;
 typedef ospray::cpp::ManagedObject<OSPRenderer, OSP_RENDERER>               ManagedRenderer;
+typedef ospray::cpp::ManagedObject<OSPTransferFunction, OSP_TRANSFER_FUNCTION> ManagedTransferFunction;
+typedef ospray::cpp::ManagedObject<OSPVolume, OSP_VOLUME>                   ManagedVolume;
+typedef ospray::cpp::ManagedObject<OSPVolumetricModel, OSP_VOLUMETRIC_MODEL> ManagedVolumetricModel;
 typedef ospray::cpp::ManagedObject<OSPWorld, OSP_WORLD>                     ManagedWorld;
 
 static py::function py_error_func;
@@ -123,7 +126,25 @@ data_constructor(py::array& array)
             
         const int w = array.shape(1);
         
-        if (w == 2)
+        if (w == 1)
+        {
+            if (dtype.is(pybind11::dtype::of<float>()))
+                return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
+            else if (dtype.is(pybind11::dtype::of<double>()))
+            {
+                printf("WARNING: passing Data object of double, are you sure that's what you want?\n");
+                return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
+            }            
+            else if (dtype.is(pybind11::dtype::of<int>()))
+                return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
+            else if (dtype.is(pybind11::dtype::of<uint8_t>()))
+                return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
+            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+                return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
+            else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+                return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
+        }
+        else if (w == 2)
         {
             if (dtype.is(pybind11::dtype::of<float>()))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data());
@@ -156,7 +177,33 @@ data_constructor(py::array& array)
         
         return ospray::cpp::Data();
     }
-     
+    else if (ndim == 3)        
+    {        
+        num_items.y = array.shape(1);
+        num_items.z = array.shape(2);
+        
+        if (dtype.is(pybind11::dtype::of<float>()))
+            return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
+        else if (dtype.is(pybind11::dtype::of<double>()))
+        {
+            printf("WARNING: passing Data object of double, are you sure that's what you want?\n");
+            return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
+        }
+        else if (dtype.is(pybind11::dtype::of<int>()))
+            return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
+        else if (dtype.is(pybind11::dtype::of<uint8_t>()))
+            return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
+        else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+            return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
+        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+            return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
+        
+        printf("WARNING: unhandled data type in data_constructor(), ndim 3, shape=(%ld,%ld,%ld), kind '%c'!\n", 
+            array.shape(0), array.shape(1), array.shape(2), dtype.kind());
+        
+        return ospray::cpp::Data();
+    }
+    
     printf("WARNING: unhandled data type in data_constructor(), ndim %d, kind '%c'!\n", ndim, dtype.kind());
     
     return ospray::cpp::Data();
@@ -181,6 +228,13 @@ void
 set_param_int(T &self, const std::string &name, const int &value)
 {
     self.setParam(name, value);
+}
+
+template<typename T>
+void
+set_param_string(T &self, const std::string &name, const std::string &value)
+{
+    self.setParam(name, value.c_str());
 }
 
 template<typename T>
@@ -326,8 +380,17 @@ set_param_list(T &self, const std::string &name, const py::list &values)
         self.setParam(name, build_data_list<ospray::cpp::Instance>(listcls, values));
     else if (listcls == "Light")
         self.setParam(name, build_data_list<ospray::cpp::Light>(listcls, values));
+    else if (listcls == "VolumetricModel")
+        self.setParam(name, build_data_list<ospray::cpp::VolumetricModel>(listcls, values));
     else
         printf("WARNING: unhandled list with items of type %s in set_param_list()!\n", listcls.c_str());
+}
+
+template<typename T>
+void
+set_param_affine3f(T& self, const std::string &name, const ospcommon::math::affine3f &value)
+{
+    self.setParam(name, value);
 }
 
 template<typename T>
@@ -339,10 +402,18 @@ set_param_material(T& self, const std::string &name, const ospray::cpp::Material
 
 template<typename T>
 void
-set_param_affine3f(T& self, const std::string &name, const ospcommon::math::affine3f &value)
+set_param_transfer_function(T& self, const std::string &name, const ospray::cpp::TransferFunction &value)
 {
     self.setParam(name, value);
 }
+
+template<typename T>
+void
+set_param_volumetric_model(T& self, const std::string &name, const ospray::cpp::VolumetricModel &value)
+{
+    self.setParam(name, value);
+}
+
 
 template<typename T>
 void
@@ -445,19 +516,22 @@ get_bounds(T &self)
 
 template<typename T>
 void
-declare_managedobject_methods(py::module& m, const char *name)
+declare_managedobject(py::module& m, const char *name)
 {
     py::class_<T>(m, name)
         //(void (T::*)(const std::string &, const float &)) 
         .def("set_param", &set_param_bool<T>)
         .def("set_param", &set_param_int<T>)
         .def("set_param", &set_param_float<T>)
+        .def("set_param", &set_param_string<T>)
         .def("set_param", &set_param_tuple<T>)
         .def("set_param", &set_param_list<T>)
         .def("set_param", &set_param_data<T>)
         .def("set_param", &set_param_numpy_array<T>)
-        .def("set_param", &set_param_material<T>)
         .def("set_param", &set_param_affine3f<T>)
+        .def("set_param", &set_param_material<T>)
+        .def("set_param", &set_param_transfer_function<T>)        
+        .def("set_param", &set_param_volumetric_model<T>)        
         .def("commit", &T::commit)
         .def("get_bounds", &get_bounds<T>)
     ;
@@ -483,18 +557,21 @@ PYBIND11_MODULE(ospray, m)
     
     m.def("init", &init);
         
-    declare_managedobject_methods<ManagedCamera>(m, "ManagedCamera");
-    declare_managedobject_methods<ManagedData>(m, "ManagedData");
-    declare_managedobject_methods<ManagedFrameBuffer>(m, "ManagedFrameBuffer");
-    declare_managedobject_methods<ManagedFuture>(m, "ManagedFuture");
-    declare_managedobject_methods<ManagedGeometricModel>(m, "ManagedGeometricModel");
-    declare_managedobject_methods<ManagedGeometry>(m, "ManagedGeometry");
-    declare_managedobject_methods<ManagedGroup>(m, "ManagedGroup");
-    declare_managedobject_methods<ManagedInstance>(m, "ManagedInstance");
-    declare_managedobject_methods<ManagedLight>(m, "ManagedLight");
-    declare_managedobject_methods<ManagedMaterial>(m, "ManagedMaterial");
-    declare_managedobject_methods<ManagedRenderer>(m, "ManagedRenderer");
-    declare_managedobject_methods<ManagedWorld>(m, "ManagedWorld");
+    declare_managedobject<ManagedCamera>(m, "ManagedCamera");
+    declare_managedobject<ManagedData>(m, "ManagedData");
+    declare_managedobject<ManagedFrameBuffer>(m, "ManagedFrameBuffer");
+    declare_managedobject<ManagedFuture>(m, "ManagedFuture");
+    declare_managedobject<ManagedGeometricModel>(m, "ManagedGeometricModel");
+    declare_managedobject<ManagedGeometry>(m, "ManagedGeometry");
+    declare_managedobject<ManagedGroup>(m, "ManagedGroup");
+    declare_managedobject<ManagedInstance>(m, "ManagedInstance");
+    declare_managedobject<ManagedLight>(m, "ManagedLight");
+    declare_managedobject<ManagedMaterial>(m, "ManagedMaterial");
+    declare_managedobject<ManagedRenderer>(m, "ManagedRenderer");
+    declare_managedobject<ManagedTransferFunction>(m, "ManagedTransferFunction");
+    declare_managedobject<ManagedVolume>(m, "ManagedVolume");
+    declare_managedobject<ManagedVolumetricModel>(m, "ManagedVolumetricModel");
+    declare_managedobject<ManagedWorld>(m, "ManagedWorld");
     
     // Device
     
@@ -530,6 +607,7 @@ PYBIND11_MODULE(ospray, m)
         .def(py::init<const ospray::cpp::Geometry &>())
         .def(py::init<const ospray::cpp::Instance &>())
         .def(py::init<const ospray::cpp::Light &>())
+        .def(py::init<const ospray::cpp::VolumetricModel &>())
         .def(py::init(
             [](py::array& array) {
                 return data_constructor(array);
@@ -587,7 +665,19 @@ PYBIND11_MODULE(ospray, m)
     py::class_<ospray::cpp::Renderer, ManagedRenderer>(m, "Renderer")
         .def(py::init<const std::string &>())
     ;
-    
+
+    py::class_<ospray::cpp::TransferFunction, ManagedTransferFunction>(m, "TransferFunction")
+        .def(py::init<const std::string &>())
+    ;
+
+    py::class_<ospray::cpp::Volume, ManagedVolume>(m, "Volume")
+        .def(py::init<const std::string &>())
+    ;
+
+    py::class_<ospray::cpp::VolumetricModel, ManagedVolumetricModel>(m, "VolumetricModel")
+        .def(py::init<const ospray::cpp::Volume &>())
+    ;
+
     py::class_<ospray::cpp::World, ManagedWorld>(m, "World")
         .def(py::init<>())
     ;
