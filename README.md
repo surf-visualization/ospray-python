@@ -102,6 +102,7 @@ for frame in range(10):
 colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
 
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
+img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
 ```
 
@@ -113,7 +114,8 @@ img.save('colors.png')
   values such as `vec3f`'s.
 - Framebuffer `map()`/`unmap()` is not wrapped, but instead a method `get(channel, imgsize, format)`
   is available that directly provides the requested framebuffer channel as
-  a NumPy array.
+  a NumPy array. Note that the pixel order is the same as what `FrameBuffer.map()`
+  returns: the first pixel returned is at the lower left pixel of the image.
 
 ## Automatic data type mapping
 

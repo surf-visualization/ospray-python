@@ -213,6 +213,7 @@ print(colors.shape)
 #print(colors)
 
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
+img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
 
 #depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H), format)
