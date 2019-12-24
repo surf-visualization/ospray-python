@@ -48,7 +48,7 @@ dims = tuple(map(int, args[1:4]))
 assert len(dims) == 3
 
 data = numpy.fromfile(rawfile, dtype=numpy.uint8)
-#data = data.reshape(dims)
+data = data.reshape(dims)
 print('volume', dims, data.shape, data.dtype)
 
 # Volume rendered

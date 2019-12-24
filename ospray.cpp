@@ -76,7 +76,7 @@ init(const std::vector<std::string>& args)
 }
 
 ospray::cpp::Data
-data_constructor(py::array& array)
+data_from_numpy_array(py::array& array)
 {
     const int ndim = array.ndim();
     const py::dtype& dtype = array.dtype();
@@ -104,7 +104,7 @@ data_constructor(py::array& array)
         else if (dtype.is(pybind11::dtype::of<uint64_t>()))
             return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
         
-        printf("WARNING: unhandled data type in data_constructor(), ndim 1, shape=%ld, kind '%c'!\n", 
+        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 1, shape=%ld, kind '%c'!\n", 
             array.shape(0), dtype.kind());
         
         return ospray::cpp::Data();
@@ -172,7 +172,7 @@ data_constructor(py::array& array)
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());
         }
 
-        printf("WARNING: unhandled data type in data_constructor(), ndim 2, shape=(%ld,%ld), kind '%c'!\n", 
+        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 2, shape=(%ld,%ld), kind '%c'!\n", 
             array.shape(0), array.shape(1), dtype.kind());
         
         return ospray::cpp::Data();
@@ -198,13 +198,13 @@ data_constructor(py::array& array)
         else if (dtype.is(pybind11::dtype::of<uint64_t>()))
             return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
         
-        printf("WARNING: unhandled data type in data_constructor(), ndim 3, shape=(%ld,%ld,%ld), kind '%c'!\n", 
+        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 3, shape=(%ld,%ld,%ld), kind '%c'!\n", 
             array.shape(0), array.shape(1), array.shape(2), dtype.kind());
         
         return ospray::cpp::Data();
     }
     
-    printf("WARNING: unhandled data type in data_constructor(), ndim %d, kind '%c'!\n", ndim, dtype.kind());
+    printf("WARNING: unhandled data type in data_from_numpy_array(), ndim %d, kind '%c'!\n", ndim, dtype.kind());
     
     return ospray::cpp::Data();
 }
@@ -244,24 +244,47 @@ set_param_data(T &self, const std::string &name, const ospray::cpp::Data &data)
     self.setParam(name, data);
 }
 
+std::string
+determine_tuple_type(const py::tuple &value)
+{
+    std::string res = "int";
+    
+    for (size_t i = 0; i < value.size(); i++)
+    {
+        if (py::isinstance<py::float_>(value[i]))
+            res = "float";
+        else if (!py::isinstance<py::int_>(value[i]))
+            return value[i].get_type().attr("__name__").cast<std::string>();
+    }
+    
+    return res;
+}
+
 template<typename T>
 void
 set_param_tuple(T &self, const std::string &name, const py::tuple &value)
 {
-    auto n = value.size();
+    size_t n = value.size();    
     
     if (n < 2 || n > 4)
     {
-        printf("ERROR: tuple length for '%s' should be in range [2,4]!\n", name.c_str());
+        printf("ERROR: in set_param_tuple(..., '%s', ...), tuple length should be in range [2,4]!\n", name.c_str());
         return;
     }
-
-    auto first = value[0];
-    std::string firstcls = first.get_type().attr("__name__").cast<std::string>();
     
+    std::string tuple_type = determine_tuple_type(value);
+    
+    if (tuple_type != "int" && tuple_type != "float")
+    {
+        printf("ERROR: unhandled data type (%s) in set_param_tuple(..., '%s', ...)!\n", tuple_type.c_str(), name.c_str());
+        return;
+    }
+    
+    bool ints = tuple_type == "int";
+
     if (n == 2)
     {
-        if (py::isinstance<py::int_>(value[0]))
+        if (ints)
         {
             ospcommon::math::vec2i vvalue;
             
@@ -270,7 +293,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             
             self.setParam(name, vvalue);
         }
-        else if (py::isinstance<py::float_>(value[0]))
+        else
         {
             ospcommon::math::vec2f vvalue;
             
@@ -279,13 +302,11 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             
             self.setParam(name, vvalue);
         }
-        else
-            printf("WARNING: unhandled data type (%s) in set_param_tuple(..., '%s', ...)!\n", firstcls.c_str(), name.c_str());
     }
     
     else if (n == 3)
     {
-        if (py::isinstance<py::int_>(value[0]))
+        if (ints)
         {
             ospcommon::math::vec3i vvalue;
             
@@ -295,7 +316,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             
             self.setParam(name, vvalue);
         }
-        else if (py::isinstance<py::float_>(value[0]))
+        else 
         {
             ospcommon::math::vec3f vvalue;
             
@@ -305,13 +326,11 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             
             self.setParam(name, vvalue);
         }
-        else
-            printf("WARNING: unhandled data type (%s) in set_param_tuple(..., '%s', ...)!\n", firstcls.c_str(), name.c_str());
     }
     
     else if (n == 4)
     {
-        if (py::isinstance<py::int_>(value[0]))
+        if (ints)
         {
             ospcommon::math::vec4i vvalue;
             
@@ -322,7 +341,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             
             self.setParam(name, vvalue);
         }
-        else if (py::isinstance<py::float_>(value[0]))
+        else
         {
             ospcommon::math::vec4f vvalue;
             
@@ -333,14 +352,12 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
             
             self.setParam(name, vvalue);
         }
-        else
-            printf("WARNING: unhandled data type (%s) in set_param_tuple(..., '%s', ...)!\n", firstcls.c_str(), name.c_str());
     }
 }
 
 template<typename T>
 ospray::cpp::Data
-build_data_list(const std::string& listcls, const py::list &values)
+build_data_from_list(const std::string& listcls, const py::list &values)
 {
     std::vector<T> items;
         
@@ -351,7 +368,7 @@ build_data_list(const std::string& listcls, const py::list &values)
         
         if (itemcls != listcls)
         {
-            printf("ERROR: item %lu in list is not of type %s, but of type %s!\n", 
+            printf("ERROR: item %lu in list is not of type '%s', but of type '%s'!\n", 
                 i, listcls.c_str(), itemcls.c_str());
             
             return ospray::cpp::Data();
@@ -372,16 +389,14 @@ set_param_list(T &self, const std::string &name, const py::list &values)
     
     std::string listcls = first.get_type().attr("__name__").cast<std::string>();
     
-    printf("%s\n", listcls.c_str());
-    
     if (listcls == "GeometricModel")
-        self.setParam(name, build_data_list<ospray::cpp::GeometricModel>(listcls, values));
+        self.setParam(name, build_data_from_list<ospray::cpp::GeometricModel>(listcls, values));
     else if (listcls == "Instance")
-        self.setParam(name, build_data_list<ospray::cpp::Instance>(listcls, values));
+        self.setParam(name, build_data_from_list<ospray::cpp::Instance>(listcls, values));
     else if (listcls == "Light")
-        self.setParam(name, build_data_list<ospray::cpp::Light>(listcls, values));
+        self.setParam(name, build_data_from_list<ospray::cpp::Light>(listcls, values));
     else if (listcls == "VolumetricModel")
-        self.setParam(name, build_data_list<ospray::cpp::VolumetricModel>(listcls, values));
+        self.setParam(name, build_data_from_list<ospray::cpp::VolumetricModel>(listcls, values));
     else
         printf("WARNING: unhandled list with items of type %s in set_param_list()!\n", listcls.c_str());
 }
@@ -424,7 +439,7 @@ set_param_numpy_array(T &self, const std::string &name, py::array& array)
     
     if (ndim > 1 || n < 2 || n > 4)
     {
-        self.setParam(name, data_constructor(array));
+        self.setParam(name, data_from_numpy_array(array));
         return;
     }
     
@@ -610,7 +625,7 @@ PYBIND11_MODULE(ospray, m)
         .def(py::init<const ospray::cpp::VolumetricModel &>())
         .def(py::init(
             [](py::array& array) {
-                return data_constructor(array);
+                return data_from_numpy_array(array);
             }))
     ;
             

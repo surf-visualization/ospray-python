@@ -137,8 +137,7 @@ are automatically converted to OSPRay types:
   is converted to a `Data` object of N `float` values.
   
 - Three-dimensional NumPy arrays are converted to `ospray::cpp::Data` values
-  of the corresponding type, *but as a single-dimensional array*.  E.g. a NumPy 
-  array of shape (N,N,N) of floats is converted to a `Data` object of N*N*N float values.
+  of the corresponding type and dimensions. 
   
 - Lists of OSPRay objects are turned into a `Data` array. The list items
   must all have the same type and are currently limited to GeometricModel, 
