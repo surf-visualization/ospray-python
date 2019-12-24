@@ -9,13 +9,10 @@ detect unsigned values, nor the width of the integer/float value.
 
 Using a numpy array gives full control over the data type of the
 values.
-Could special case a numpy array of 1 to convert to a single value!
 
-We currently special-case numpy arrays of length 2, 3 and 4.
-This gets us in trouble for e.g. passing a short list of opacities
-to a TF, which needs to be a float[]. But the current conversion
-turns numpy.array([0, 1], dtype=numpy.float32) into an
-ospcommon::math::vec2f ...
+Could special case a numpy array of 1 to convert to a single value,
+but that screws up cases where you really need an array holding a single
+value.
 
 Types used in the API:
 

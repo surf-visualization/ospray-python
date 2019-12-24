@@ -54,7 +54,7 @@ print('volume', dims, data.shape, data.dtype)
 # Volume rendered
 
 tfcolors = numpy.array([[0, 0, 0], [1, 1, 1]], dtype=numpy.float32)
-tfopacities = numpy.array([[0], [1]], dtype=numpy.float32)
+tfopacities = numpy.array([0, 1], dtype=numpy.float32)
 
 transfer_function = ospray.TransferFunction('piecewise_linear')
 transfer_function.set_param('color', tfcolors)
@@ -151,7 +151,7 @@ cam_up = (0.0, 1.0, 0.0)
 camera = ospray.Camera('perspective')
 camera.set_param('aspect', W/H)
 camera.set_param('fovy', 50.0)
-camera.set_param('position', cam_pos)
+camera.set_param('position', tuple(cam_pos.tolist()))
 camera.set_param('direction', cam_view)
 camera.set_param('up', cam_up)
 camera.commit()

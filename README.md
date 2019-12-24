@@ -76,7 +76,6 @@ world = ospray.World()
 world.set_param('instance', [instance])
 
 light = ospray.Light('ambient')
-light.set_param('color', (1, 1, 1))
 light.commit()
 
 world.set_param('light', [light])
@@ -124,22 +123,22 @@ are automatically converted to OSPRay types:
 - A tuple of float or int, that is of length 2, 3 or 4 is converted
   to a corresponding `ospcommon::math::vec<n>[i|f]` value. 
   
-- A single-dimensional NumPy array of length 2, 3 or 4 is also converted
-  to a single value of the corresponding `ospcommon::math::vec<n>[i|ui|f]` type. 
+- A single-dimensional NumPy array is converted to a `ospray::cpp::Data` value
+  of the corresponding C++ type. E.g. a NumPy array of N `numpy.uint32` values 
+  is converted to a `Data` object of type `uint32_t`.
   
 - Two-dimensional NumPy arrays are converted to `ospray::cpp::Data` values
-  of the corresponding type, based on the second dimension of the array.
-  Unless the second dimension is 1, in which case the array is converted to
-  a single-dimensional `Data` object.
+  of the corresponding *vector* type, based on the second dimension of the array.
+  E.g. a NumPy array of shape (N,3) of `numpy.float32` is converted to a `Data` object
+  of `ospcommon::math::vec3f` values. 
   
-  E.g. a NumPy array of shape (N,3) of floats is converted to a `Data` object
-  of `ospcommon::math::vec3f` values. A NumPy array of shape (N,1) of floats
-  is converted to a `Data` object of N `float` values.
+  An exception here is a NumPy array of shape (N, 1). This is converted
+  to a single-dimensional `Data` object of N values.
   
 - Three-dimensional NumPy arrays are converted to `ospray::cpp::Data` values
   of the corresponding type and dimensions. 
   
-- Lists of OSPRay objects are turned into a `Data` array. The list items
+- Lists of OSPRay objects are turned into a `Data` object. The list items
   must all have the same type and are currently limited to GeometricModel, 
   Instance, Material and VolumetricModel. 
 
@@ -149,9 +148,9 @@ are automatically converted to OSPRay types:
 Examples:
 
 ```
-# Tuple -> vec3f
-light = ospray.Light('ambient')
-light.set_param('color', (1, 1, 1))
+# 3-tuple -> vec3f
+light1 = ospray.Light('ambient')
+light1.set_param('color', (1, 1, 1))
 
 # NumPy array to ospray::cpp::Data
 index = numpy.array([
@@ -160,10 +159,11 @@ index = numpy.array([
 mesh = ospray.Geometry('mesh')
 mesh.set_param('index', index)
 
-# NumPy array to ospcommon::math::vec3f
+# NumPy array to ospcommon::math::vec3f isn't directly possible.
+# Use manual conversion to tuple.
 cam_pos = numpy.array([1, 2, 3.5], dtype=numpy.float32)
 camera = ospray.Camera('perspective')
-camera.set_param('position', cam_pos)
+camera.set_param('position', tuple(cam_pos.tolist()))
 
 # List of scene objects to ospray::cpp::Data
 world.set_param('light', [light1,light2])

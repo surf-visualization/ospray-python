@@ -91,10 +91,7 @@ data_from_numpy_array(py::array& array)
         if (dtype.is(pybind11::dtype::of<float>()))
             return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
         else if (dtype.is(pybind11::dtype::of<double>()))
-        {
-            printf("WARNING: passing Data object of double, are you sure that's what you want?\n");
             return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-        }
         else if (dtype.is(pybind11::dtype::of<int>()))
             return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
         else if (dtype.is(pybind11::dtype::of<uint8_t>()))
@@ -131,10 +128,7 @@ data_from_numpy_array(py::array& array)
             if (dtype.is(pybind11::dtype::of<float>()))
                 return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
             else if (dtype.is(pybind11::dtype::of<double>()))
-            {
-                printf("WARNING: passing Data object of double, are you sure that's what you want?\n");
                 return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-            }            
             else if (dtype.is(pybind11::dtype::of<int>()))
                 return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
             else if (dtype.is(pybind11::dtype::of<uint8_t>()))
@@ -185,10 +179,7 @@ data_from_numpy_array(py::array& array)
         if (dtype.is(pybind11::dtype::of<float>()))
             return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
         else if (dtype.is(pybind11::dtype::of<double>()))
-        {
-            printf("WARNING: passing Data object of double, are you sure that's what you want?\n");
             return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-        }
         else if (dtype.is(pybind11::dtype::of<int>()))
             return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
         else if (dtype.is(pybind11::dtype::of<uint8_t>()))
@@ -244,7 +235,7 @@ set_param_data(T &self, const std::string &name, const ospray::cpp::Data &data)
     self.setParam(name, data);
 }
 
-std::string
+static std::string
 determine_tuple_type(const py::tuple &value)
 {
     std::string res = "int";
@@ -403,6 +394,42 @@ set_param_list(T &self, const std::string &name, const py::list &values)
 
 template<typename T>
 void
+set_param_numpy_array(T &self, const std::string &name, py::array& array)
+{
+#if 0    
+    if (array.ndim() == 1 && array.shape(0) == 1)
+    {
+        // Single value
+        const py::dtype& dtype = array.dtype();
+        
+        auto value = array[0];
+        
+        if (dtype.is(pybind11::dtype::of<float>()))
+            self.setParam(name, py::cast<float>(value));
+        else if (dtype.is(pybind11::dtype::of<double>()))
+        {
+            printf("WARNING: passing double value as parameter, are you sure that's what you want?\n");
+            self.setParam(name, py::cast<double>(value));
+        }
+        else if (dtype.is(pybind11::dtype::of<int>()))
+            self.setParam(name, py::cast<int>(value));
+        else if (dtype.is(pybind11::dtype::of<uint8_t>()))
+            self.setParam(name, py::cast<uint8_t>(value));
+        else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+            self.setParam(name, py::cast<uint32_t>(value));
+        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+            self.setParam(name, py::cast<uint64_t>(value));
+        
+        return;
+    }        
+#endif
+
+    // Multiple values -> Data
+    self.setParam(name, data_from_numpy_array(array));
+}
+
+template<typename T>
+void
 set_param_affine3f(T& self, const std::string &name, const ospcommon::math::affine3f &value)
 {
     self.setParam(name, value);
@@ -429,56 +456,7 @@ set_param_volumetric_model(T& self, const std::string &name, const ospray::cpp::
     self.setParam(name, value);
 }
 
-
-template<typename T>
-void
-set_param_numpy_array(T &self, const std::string &name, py::array& array)
-{
-    const int ndim = array.ndim();
-    const int n = array.shape(0);
-    
-    if (ndim > 1 || n < 2 || n > 4)
-    {
-        self.setParam(name, data_from_numpy_array(array));
-        return;
-    }
-    
-    const py::dtype& dtype = array.dtype();
-    
-    if (dtype.is(pybind11::dtype::of<float>()))
-    {
-        const float *values = (float*)(array.data());
-        
-        if (n == 2)
-            self.setParam(name, ospcommon::math::vec2f(values));
-        else if (n == 3)
-            self.setParam(name, ospcommon::math::vec3f(values));
-        else if (n == 4)
-            self.setParam(name, ospcommon::math::vec4f(values));
-    }
-    else if (dtype.is(pybind11::dtype::of<int>()))
-    {
-        const int *values = (int*)(array.data()); 
-        
-        if (n == 2)
-            self.setParam(name, ospcommon::math::vec2i(values));
-        else if (n == 3)
-            self.setParam(name, ospcommon::math::vec3i(values));
-        else if (n == 4)
-            self.setParam(name, ospcommon::math::vec4i(values));
-    }
-    else if (dtype.is(pybind11::dtype::of<uint32_t>()))
-    {
-        const uint32_t *values = (uint32_t*)(array.data()); 
-        
-        if (n == 2)
-            self.setParam(name, ospcommon::math::vec2ui(values));
-        else if (n == 3)
-            self.setParam(name, ospcommon::math::vec3ui(values));
-        else if (n == 4)
-            self.setParam(name, ospcommon::math::vec4ui(values));
-    }
-}
+// FrameBuffer
 
 ospray::cpp::FrameBuffer
 framebuffer_create(py::tuple& imgsize, OSPFrameBufferFormat format, int channels)
