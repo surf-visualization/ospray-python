@@ -411,6 +411,7 @@ set_param_numpy_array(T &self, const std::string &name, py::array& array)
         
         auto value = array[0];
         
+        // XXX need to correct these calls
         if (dtype.is(pybind11::dtype::of<float>()))
             self.setParam(name, py::cast<float>(value));
         else if (dtype.is(pybind11::dtype::of<double>()))
