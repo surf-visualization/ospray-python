@@ -2,7 +2,9 @@ Types are all over the place:
 - Subdivision 'index' is uint[], AMR volume 'block.level' uses int[].
 - Mesh 'index' needs to be either vec3ui[] or vec4ui[]
 - Unstructured volume 'index' needs to be either uint32[] or uint64[],
-and its 'cell.type' uint8[]
+  and its 'cell.type' uint8[]
+- Texture2D needs a 2D Data array (i.e. with z=1) but whose values
+  are vec3f/vec4f/etc.
 
 Python tuple is always converted to a vec<n>f or vec<n>i, as we can't 
 detect unsigned values, nor the width of the integer/float value.

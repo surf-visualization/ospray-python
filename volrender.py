@@ -291,11 +291,18 @@ camera.commit()
 
 # Renderer
 
+#pixel = numpy.ones((1,1,3), numpy.uint8)
+#backplate = ospray.Texture("texture2d")
+#backplate.set_param('format', ospray.OSP_TEXTURE_RGB8)
+#backplate.set_param('data', ospray.texture_data_from_numpy_array(pixel))
+#backplate.commit()
+
 renderer = ospray.Renderer(RENDERER)
 if isovalue is not None:
     renderer.set_param('bgColor', 1.0)
 else:
-    renderer.set_param('bgColor', 0.0)
+    renderer.set_param('bgColor', (0.0, 0.0, 0.0))
+    #renderer.set_param('backplate', backplate)
 #if RENDERER == 'scivis':
 #    renderer.set_param('volumeSamplingRate', 1.0)
 renderer.commit()

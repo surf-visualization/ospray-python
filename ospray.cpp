@@ -19,6 +19,7 @@ typedef ospray::cpp::ManagedObject<OSPInstance, OSP_INSTANCE>               Mana
 typedef ospray::cpp::ManagedObject<OSPLight, OSP_LIGHT>                     ManagedLight;
 typedef ospray::cpp::ManagedObject<OSPMaterial, OSP_MATERIAL>               ManagedMaterial;
 typedef ospray::cpp::ManagedObject<OSPRenderer, OSP_RENDERER>               ManagedRenderer;
+typedef ospray::cpp::ManagedObject<OSPTexture, OSP_TEXTURE>                 ManagedTexture;
 typedef ospray::cpp::ManagedObject<OSPTransferFunction, OSP_TRANSFER_FUNCTION> ManagedTransferFunction;
 typedef ospray::cpp::ManagedObject<OSPVolume, OSP_VOLUME>                   ManagedVolume;
 typedef ospray::cpp::ManagedObject<OSPVolumetricModel, OSP_VOLUMETRIC_MODEL> ManagedVolumetricModel;
@@ -150,8 +151,12 @@ data_from_numpy_array(py::array& array)
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data());
             else if (py::isinstance<py::array_t<int>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2i*)array.data());
+            else if (py::isinstance<py::array_t<uint8_t>>(array))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2uc*)array.data());                            
             else if (py::isinstance<py::array_t<uint32_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ui*)array.data());
+            else if (py::isinstance<py::array_t<uint32_t>>(array))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ul*)array.data());            
         }       
         else if (w == 3)
         {
@@ -159,8 +164,12 @@ data_from_numpy_array(py::array& array)
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data());
             else if (py::isinstance<py::array_t<int>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3i*)array.data());
+            else if (py::isinstance<py::array_t<uint8_t>>(array))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3uc*)array.data());                
             else if (py::isinstance<py::array_t<uint32_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data());
+            else if (py::isinstance<py::array_t<uint32_t>>(array))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ul*)array.data());            
         }
         else if (w == 4)
         {
@@ -168,8 +177,12 @@ data_from_numpy_array(py::array& array)
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data());
             else if (py::isinstance<py::array_t<int>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data());
+            else if (py::isinstance<py::array_t<uint8_t>>(array))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4uc*)array.data());                            
             else if (py::isinstance<py::array_t<uint32_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());
+            else if (py::isinstance<py::array_t<uint32_t>>(array))
+                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ul*)array.data());
         }
 
         printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 2, shape=(%ld,%ld), kind '%c', itemsize %ld!!\n", 
@@ -205,6 +218,52 @@ data_from_numpy_array(py::array& array)
         ndim, dtype.kind(), dtype.itemsize());
     
     return ospray::cpp::Data();
+}
+
+ospray::cpp::Data
+texture_data_from_numpy_array(py::array& array)
+{
+    const int ndim = array.ndim();
+    const py::dtype& dtype = array.dtype();
+    
+    if (ndim != 3)
+    {
+        printf("ERROR: numpy array must have dimension 3 in texture_data_from_numpy_array()!\n");
+        return ospray::cpp::Data();
+    }
+        
+    ospcommon::math::vec3ul num_items { array.shape(0), array.shape(1), 1 };
+    ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
+    
+    const int w = array.shape(2);
+    
+    if (w == 3)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data());
+        else if (py::isinstance<py::array_t<int>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3i*)array.data());
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3uc*)array.data());                
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data());        
+    }
+    else if (w == 4)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data());
+        else if (py::isinstance<py::array_t<int>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data());
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4uc*)array.data());                        
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());        
+    }
+    else
+    {
+        printf("ERROR: numpy array shape[2] must be 3 or 4 in texture_data_from_numpy_array()!\n");
+        return ospray::cpp::Data();        
+    }
 }
 
 template<typename T>
@@ -452,6 +511,13 @@ set_param_material(T& self, const std::string &name, const ospray::cpp::Material
 
 template<typename T>
 void
+set_param_texture(T& self, const std::string &name, const ospray::cpp::Texture &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
 set_param_transfer_function(T& self, const std::string &name, const ospray::cpp::TransferFunction &value)
 {
     self.setParam(name, value);
@@ -521,6 +587,7 @@ declare_managedobject(py::module& m, const char *name)
 {
     py::class_<T>(m, name)
         //(void (T::*)(const std::string &, const float &)) 
+        // XXX can probably replace most of these with lambas here
         .def("set_param", &set_param_bool<T>)
         .def("set_param", &set_param_int<T>)
         .def("set_param", &set_param_float<T>)
@@ -531,6 +598,7 @@ declare_managedobject(py::module& m, const char *name)
         .def("set_param", &set_param_numpy_array<T>)
         .def("set_param", &set_param_affine3f<T>)
         .def("set_param", &set_param_material<T>)
+        .def("set_param", &set_param_texture<T>)        
         .def("set_param", &set_param_transfer_function<T>)        
         .def("set_param", &set_param_volumetric_model<T>)        
         .def("commit", &T::commit)
@@ -569,6 +637,7 @@ PYBIND11_MODULE(ospray, m)
     declare_managedobject<ManagedLight>(m, "ManagedLight");
     declare_managedobject<ManagedMaterial>(m, "ManagedMaterial");
     declare_managedobject<ManagedRenderer>(m, "ManagedRenderer");
+    declare_managedobject<ManagedTexture>(m, "ManagedTexture");
     declare_managedobject<ManagedTransferFunction>(m, "ManagedTransferFunction");
     declare_managedobject<ManagedVolume>(m, "ManagedVolume");
     declare_managedobject<ManagedVolumetricModel>(m, "ManagedVolumetricModel");
@@ -667,6 +736,10 @@ PYBIND11_MODULE(ospray, m)
         .def(py::init<const std::string &>())
     ;
 
+    py::class_<ospray::cpp::Texture, ManagedTexture>(m, "Texture")
+        .def(py::init<const std::string &>())
+    ;
+
     py::class_<ospray::cpp::TransferFunction, ManagedTransferFunction>(m, "TransferFunction")
         .def(py::init<const std::string &>())
     ;
@@ -703,5 +776,7 @@ PYBIND11_MODULE(ospray, m)
         .def(py::self * py::self)
         .def(py::self / py::self)
     ;
+    
+    m.def("texture_data_from_numpy_array", texture_data_from_numpy_array);
 }
 
