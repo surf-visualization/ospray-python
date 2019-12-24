@@ -86,35 +86,41 @@ data_from_numpy_array(py::array& array)
     
     num_items.x = array.shape(0);
     
+    // https://github.com/pybind/pybind11/issues/563#issuecomment-267836074
+    // Use 
+    //  py::isinstance<py::array_t<std::int32_t>>(buf) 
+    // instead of 
+    //  buf.dtype() == pybind11::dtype::of<std::int32_t>()
+    
     if (ndim == 1)
     {
-        if (dtype.is(pybind11::dtype::of<float>()))
+        if (py::isinstance<py::array_t<float>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
-        else if (dtype.is(pybind11::dtype::of<double>()))
+        else if (py::isinstance<py::array_t<double>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-        else if (dtype.is(pybind11::dtype::of<int>()))
+        else if (py::isinstance<py::array_t<int>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint8_t>()))
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
         
-        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 1, shape=%ld, kind '%c'!\n", 
-            array.shape(0), dtype.kind());
+        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 1, shape=%ld, kind '%c', itemsize %ld!\n", 
+            array.shape(0), dtype.kind(), dtype.itemsize());
         
         return ospray::cpp::Data();
     }
     else if (ndim == 2)
     {        
-        if (dtype.is(pybind11::dtype::of<double>()))
+        if (py::isinstance<py::array_t<double>>(array))
         {
             printf("WARNING: attempt to pass double precision vector values (shape %ld x %ld), but only single-precision (float) values are supported by OSPRay!\n",
                 array.shape(0), array.shape(1));
             return ospray::cpp::Data();
         }
-        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
         {
             printf("WARNING: attempt to pass 64-bit integer vector values (shape %ld x %ld), but these are not supported by OSPRay!\n",
                 array.shape(0), array.shape(1));
@@ -125,49 +131,49 @@ data_from_numpy_array(py::array& array)
         
         if (w == 1)
         {
-            if (dtype.is(pybind11::dtype::of<float>()))
+            if (py::isinstance<py::array_t<float>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
-            else if (dtype.is(pybind11::dtype::of<double>()))
+            else if (py::isinstance<py::array_t<double>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-            else if (dtype.is(pybind11::dtype::of<int>()))
+            else if (py::isinstance<py::array_t<int>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint8_t>()))
+            else if (py::isinstance<py::array_t<uint8_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+            else if (py::isinstance<py::array_t<uint32_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+            else if (py::isinstance<py::array_t<uint64_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
         }
         else if (w == 2)
         {
-            if (dtype.is(pybind11::dtype::of<float>()))
+            if (py::isinstance<py::array_t<float>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data());
-            else if (dtype.is(pybind11::dtype::of<int>()))
+            else if (py::isinstance<py::array_t<int>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2i*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+            else if (py::isinstance<py::array_t<uint32_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ui*)array.data());
         }       
         else if (w == 3)
         {
-            if (dtype.is(pybind11::dtype::of<float>()))
+            if (py::isinstance<py::array_t<float>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data());
-            else if (dtype.is(pybind11::dtype::of<int>()))
+            else if (py::isinstance<py::array_t<int>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3i*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+            else if (py::isinstance<py::array_t<uint32_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data());
         }
         else if (w == 4)
         {
-            if (dtype.is(pybind11::dtype::of<float>()))
+            if (py::isinstance<py::array_t<float>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data());
-            else if (dtype.is(pybind11::dtype::of<int>()))
+            else if (py::isinstance<py::array_t<int>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+            else if (py::isinstance<py::array_t<uint32_t>>(array))
                 return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());
         }
 
-        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 2, shape=(%ld,%ld), kind '%c'!\n", 
-            array.shape(0), array.shape(1), dtype.kind());
+        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 2, shape=(%ld,%ld), kind '%c', itemsize %ld!!\n", 
+            array.shape(0), array.shape(1), dtype.kind(), dtype.itemsize());
         
         return ospray::cpp::Data();
     }
@@ -176,26 +182,27 @@ data_from_numpy_array(py::array& array)
         num_items.y = array.shape(1);
         num_items.z = array.shape(2);
         
-        if (dtype.is(pybind11::dtype::of<float>()))
+        if (py::isinstance<py::array_t<float>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
-        else if (dtype.is(pybind11::dtype::of<double>()))
+        else if (py::isinstance<py::array_t<double>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-        else if (dtype.is(pybind11::dtype::of<int>()))
+        else if (py::isinstance<py::array_t<int>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint8_t>()))
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint32_t>()))
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
         
-        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 3, shape=(%ld,%ld,%ld), kind '%c'!\n", 
-            array.shape(0), array.shape(1), array.shape(2), dtype.kind());
+        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 3, shape=(%ld,%ld,%ld), kind '%c', itemsize %ld!\n", 
+            array.shape(0), array.shape(1), array.shape(2), dtype.kind(), dtype.itemsize());
         
         return ospray::cpp::Data();
-    }
+    }    
     
-    printf("WARNING: unhandled data type in data_from_numpy_array(), ndim %d, kind '%c'!\n", ndim, dtype.kind());
+    printf("WARNING: unhandled data type in data_from_numpy_array(), ndim %d, kind '%c', itemsize %ld!\n", 
+        ndim, dtype.kind(), dtype.itemsize());
     
     return ospray::cpp::Data();
 }

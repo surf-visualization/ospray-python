@@ -130,7 +130,7 @@ print(center)
 position = center + 3*(bound[1] - center)
 
 cam_pos = tuple(position.tolist())
-cam_up = (0.0, 0.0, 1.0)
+cam_up = (0.0, 0, 1)
 cam_view = tuple((center - position).tolist())
 
 camera = ospray.Camera('perspective')

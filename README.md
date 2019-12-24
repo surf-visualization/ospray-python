@@ -120,8 +120,10 @@ img.save('colors.png')
 When setting parameter values with `set_param()` certain Python values 
 are automatically converted to OSPRay types:
 
-- A tuple of float or int, that is of length 2, 3 or 4 is converted
-  to a corresponding `ospcommon::math::vec<n>[i|f]` value. 
+- A 2/3/4-tuple of float or int is converted to a corresponding 
+  `ospcommon::math::vec<n>[i|f]` value. If there is at least one float
+  in a tuple it is converted to a `vec<n>f` value, otherwise a `vec<n>i`
+  value is produced.
   
 - A single-dimensional NumPy array is converted to a `ospray::cpp::Data` value
   of the corresponding C++ type. E.g. a NumPy array of N `numpy.uint32` values 
@@ -159,10 +161,12 @@ index = numpy.array([
 mesh = ospray.Geometry('mesh')
 mesh.set_param('index', index)
 
-# NumPy array to ospcommon::math::vec3f isn't directly possible.
-# Use manual conversion to tuple.
-cam_pos = numpy.array([1, 2, 3.5], dtype=numpy.float32)
 camera = ospray.Camera('perspective')
+# Tuple of floats -> ospcommon::math::vec3f
+camera.set_param('up', (0.0, 0.0, 1.0))
+# NumPy array to ospcommon::math::vec3f isn't directly possible.
+# Use manual conversion to tuple, or set a tuple directly
+cam_pos = numpy.array([1, 2, 3.5], dtype=numpy.float32)
 camera.set_param('position', tuple(cam_pos.tolist()))
 
 # List of scene objects to ospray::cpp::Data

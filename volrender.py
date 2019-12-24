@@ -1,16 +1,21 @@
 #!/usr/bin/env python
-import sys, getopt
+import sys, getopt, os
 import numpy
 from PIL import Image
 import ospray
-# Needs https://github.com/paulmelis/blender-ply-import
-from readply import readply
 
 W = 1024
 H = 768
 RENDERER = 'scivis'
 
 argv = ospray.init(sys.argv)
+
+try:
+    # Needs to go after ospInit apparently, as get a lockup during exit otherwise
+    import h5py
+    have_h5py = True
+except ImportError:
+    have_h5py = False
 
 # Enable logging output
 
@@ -31,25 +36,53 @@ device.commit()
 
 # Parse arguments
 
+dimensions = None
+dataset_name = None
 force_subdivision_mesh = False
 subvision_level = 5.0
+voxel_type = None
 
-optlist, args = getopt.getopt(argv[1:], 'l:s')
+optlist, args = getopt.getopt(argv[1:], 'd:D:l:s')
 
 for o, a in optlist:
-    if o == '-l':
+    if o == '-d':
+        dimensions = tuple(map(int, a.split(',')))
+        assert len(dimensions) == 3
+    elif o == '-D':
+        dataset_name = a
+    elif o == '-l':
         subvision_level = float(a)
     elif o == '-s':
         force_subdivision_mesh = True
 
-rawfile = args[0]
+volfile = args[0]
 
-dims = tuple(map(int, args[1:4]))
-assert len(dims) == 3
+# Read file
 
-data = numpy.fromfile(rawfile, dtype=numpy.uint8)
-data = data.reshape(dims)
-print('volume', dims, data.shape, data.dtype)
+ext = os.path.splitext(volfile)[-1]
+
+if ext == '.raw':
+    assert dimensions is not None
+    data = numpy.fromfile(volfile, dtype=numpy.uint8)    
+    data = data.reshape(dimensions)
+    voxel_type = ospray.OSP_UCHAR
+    
+elif ext in ['.h5', '.hdf5']:
+    assert have_h5py and 'Need h5py module!'
+    assert dataset_name and 'Dataset name needs to be set with -D'
+    f = h5py.File(volfile, 'r')
+    dset = f[dataset_name]
+    data = numpy.array(dset[:])
+    dimensions = data.shape
+    f.close()
+    
+    dtype = str(data.dtype)
+        
+    voxel_type = {
+        'float32': ospray.OSP_FLOAT
+    }[dtype]
+
+print('volume', dimensions, data.shape, data.dtype)
 
 # Volume rendered
 
@@ -63,8 +96,8 @@ transfer_function.set_param('valueRange', (0.0, 255.0))
 transfer_function.commit()
 
 volume = ospray.Volume('structured_regular')
-volume.set_param('dimensions', dims)
-volume.set_param('voxelType', ospray.OSP_UCHAR)
+volume.set_param('dimensions', dimensions)
+volume.set_param('voxelType', voxel_type)
 volume.set_param('data', data)
 volume.commit()
 
@@ -104,7 +137,7 @@ ggroup.set_param('geometry', [gmodel])
 ggroup.commit()
 
 ginstance = ospray.Instance(ggroup)
-ginstance.set_param('xfm', ospray.affine3f.translate((dims[0],0,0)))
+ginstance.set_param('xfm', ospray.affine3f.translate((dimensions[0],0,0)))
 ginstance.commit()
 
 instances = [vinstance, ginstance]
