@@ -129,9 +129,9 @@ print(center)
     
 position = center + 3*(bound[1] - center)
 
-cam_pos = position
-cam_up = (0.0, 0.0, 1.0)
-cam_view = center - position
+cam_pos = tuple(position.tolist())
+cam_up = (0.0, 0, 1)
+cam_view = tuple((center - position).tolist())
 
 camera = ospray.Camera('perspective')
 camera.set_param('aspect', W/H)
@@ -213,6 +213,7 @@ print(colors.shape)
 #print(colors)
 
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
+img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
 
 #depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H), format)

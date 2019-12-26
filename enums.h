@@ -113,8 +113,30 @@ define_enums(py::module& m)
         .value("OSP_WORLD_COMMITTED", OSPSyncEvent::OSP_WORLD_COMMITTED)
         .value("OSP_FRAME_FINISHED", OSPSyncEvent::OSP_FRAME_FINISHED)
         .value("OSP_TASK_FINISHED", OSPSyncEvent::OSP_TASK_FINISHED)
-        .export_values()
+        .export_values()            
     ;
+    
+    py::enum_<OSPTextureFormat>(m, "OSPTextureFormat")
+        .value("OSP_TEXTURE_RGBA8", OSPTextureFormat::OSP_TEXTURE_RGBA8)
+        .value("OSP_TEXTURE_SRGBA", OSPTextureFormat::OSP_TEXTURE_SRGBA)
+        .value("OSP_TEXTURE_RGBA32F", OSPTextureFormat::OSP_TEXTURE_RGBA32F)
+        .value("OSP_TEXTURE_RGB8", OSPTextureFormat::OSP_TEXTURE_RGB8)
+        .value("OSP_TEXTURE_SRGB", OSPTextureFormat::OSP_TEXTURE_SRGB)
+        .value("OSP_TEXTURE_RGB32F", OSPTextureFormat::OSP_TEXTURE_RGB32F)
+        .value("OSP_TEXTURE_R8", OSPTextureFormat::OSP_TEXTURE_R8)
+        .value("OSP_TEXTURE_R32F", OSPTextureFormat::OSP_TEXTURE_R32F)
+        .value("OSP_TEXTURE_L8", OSPTextureFormat::OSP_TEXTURE_L8)
+        .value("OSP_TEXTURE_RA8", OSPTextureFormat::OSP_TEXTURE_RA8)
+        .value("OSP_TEXTURE_LA8", OSPTextureFormat::OSP_TEXTURE_LA8)
+        .value("OSP_TEXTURE_FORMAT_INVALID", OSPTextureFormat::OSP_TEXTURE_FORMAT_INVALID)
+        .export_values()            
+    ;        
+    
+    py::enum_<OSPTextureFilter>(m, "OSPTextureFilter")
+        .value("OSP_TEXTURE_FILTER_BILINEAR", OSPTextureFilter::OSP_TEXTURE_FILTER_BILINEAR)
+        .value("OSP_TEXTURE_FILTER_NEAREST", OSPTextureFilter::OSP_TEXTURE_FILTER_NEAREST)
+        .export_values()            
+    ;        
 }
 
 #endif

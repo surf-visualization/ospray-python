@@ -1,0 +1,44 @@
+Types are all over the place:
+- Subdivision 'index' is uint[], AMR volume 'block.level' uses int[].
+- Mesh 'index' needs to be either vec3ui[] or vec4ui[]
+- Unstructured volume 'index' needs to be either uint32[] or uint64[],
+  and its 'cell.type' uint8[]
+- Texture2D needs a 2D Data array (i.e. with z=1) but whose values
+  are vec3f/vec4f/etc.
+
+Python tuple is always converted to a vec<n>f or vec<n>i, as we can't 
+detect unsigned values, nor the width of the integer/float value.
+
+Using a numpy array gives full control over the data type of the
+values.
+
+Could special case a numpy array of 1 to convert to a single value,
+but that screws up cases where you really need an array holding a single
+value.
+
+Types used in the API:
+
+- bool: value
+- int: value and array
+- float: value and array
+- double: <not used>
+- uint: array
+- uint8: array
+- uint16: <not used>
+- uint32: value and array
+- uint64: array
+
+
+- vec2i: value (ospNewFrameBuffer), array (edgeCrease.index)
+- vec2ui: <not used>
+- vec2f: value and array
+
+- vec3i: value (dimensions)
+- vec3ui: array
+- vec3f: value and array
+
+- vec4i: <not used>
+- vec4ui: array
+- vec4f: value and array
+
+
