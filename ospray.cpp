@@ -76,150 +76,6 @@ init(const std::vector<std::string>& args)
     return newargs;
 }
 
-ospray::cpp::Data
-data_from_numpy_array(py::array& array)
-{
-    const int ndim = array.ndim();
-    const py::dtype& dtype = array.dtype();
-    
-    ospcommon::math::vec3ul num_items { 1, 1, 1 };
-    ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
-    
-    num_items.x = array.shape(0);
-    
-    // https://github.com/pybind/pybind11/issues/563#issuecomment-267836074
-    // Use 
-    //  py::isinstance<py::array_t<std::int32_t>>(buf) 
-    // instead of 
-    //  buf.dtype() == pybind11::dtype::of<std::int32_t>()
-    
-    if (ndim == 1)
-    {
-        if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
-        else if (py::isinstance<py::array_t<double>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-        else if (py::isinstance<py::array_t<int>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
-        else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
-        else if (py::isinstance<py::array_t<uint32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
-        else if (py::isinstance<py::array_t<uint64_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
-        
-        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 1, shape=%ld, kind '%c', itemsize %ld!\n", 
-            array.shape(0), dtype.kind(), dtype.itemsize());
-        
-        return ospray::cpp::Data();
-    }
-    else if (ndim == 2)
-    {        
-        if (py::isinstance<py::array_t<double>>(array))
-        {
-            printf("WARNING: attempt to pass double precision vector values (shape %ld x %ld), but only single-precision (float) values are supported by OSPRay!\n",
-                array.shape(0), array.shape(1));
-            return ospray::cpp::Data();
-        }
-        else if (py::isinstance<py::array_t<uint64_t>>(array))
-        {
-            printf("WARNING: attempt to pass 64-bit integer vector values (shape %ld x %ld), but these are not supported by OSPRay!\n",
-                array.shape(0), array.shape(1));
-            return ospray::cpp::Data();
-        }
-            
-        const int w = array.shape(1);
-        
-        if (w == 1)
-        {
-            if (py::isinstance<py::array_t<float>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
-            else if (py::isinstance<py::array_t<double>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-            else if (py::isinstance<py::array_t<int>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
-            else if (py::isinstance<py::array_t<uint8_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
-            else if (py::isinstance<py::array_t<uint32_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
-            else if (py::isinstance<py::array_t<uint64_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
-        }
-        else if (w == 2)
-        {
-            if (py::isinstance<py::array_t<float>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data());
-            else if (py::isinstance<py::array_t<int>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2i*)array.data());
-            else if (py::isinstance<py::array_t<uint8_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2uc*)array.data());                            
-            else if (py::isinstance<py::array_t<uint32_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ui*)array.data());
-            else if (py::isinstance<py::array_t<uint32_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ul*)array.data());            
-        }       
-        else if (w == 3)
-        {
-            if (py::isinstance<py::array_t<float>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data());
-            else if (py::isinstance<py::array_t<int>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3i*)array.data());
-            else if (py::isinstance<py::array_t<uint8_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3uc*)array.data());                
-            else if (py::isinstance<py::array_t<uint32_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data());
-            else if (py::isinstance<py::array_t<uint32_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ul*)array.data());            
-        }
-        else if (w == 4)
-        {
-            if (py::isinstance<py::array_t<float>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data());
-            else if (py::isinstance<py::array_t<int>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data());
-            else if (py::isinstance<py::array_t<uint8_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4uc*)array.data());                            
-            else if (py::isinstance<py::array_t<uint32_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());
-            else if (py::isinstance<py::array_t<uint32_t>>(array))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ul*)array.data());
-        }
-
-        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 2, shape=(%ld,%ld), kind '%c', itemsize %ld!!\n", 
-            array.shape(0), array.shape(1), dtype.kind(), dtype.itemsize());
-        
-        return ospray::cpp::Data();
-    }
-    else if (ndim == 3)        
-    {        
-        num_items.y = array.shape(1);
-        num_items.z = array.shape(2);
-        
-        if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
-        else if (py::isinstance<py::array_t<double>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-        else if (py::isinstance<py::array_t<int>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
-        else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
-        else if (py::isinstance<py::array_t<uint32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
-        else if (py::isinstance<py::array_t<uint64_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
-        
-        printf("WARNING: unhandled data type in data_from_numpy_array(), ndim 3, shape=(%ld,%ld,%ld), kind '%c', itemsize %ld!\n", 
-            array.shape(0), array.shape(1), array.shape(2), dtype.kind(), dtype.itemsize());
-        
-        return ospray::cpp::Data();
-    }    
-    
-    printf("WARNING: unhandled data type in data_from_numpy_array(), ndim %d, kind '%c', itemsize %ld!\n", 
-        ndim, dtype.kind(), dtype.itemsize());
-    
-    return ospray::cpp::Data();
-}
-
 static void
 print_array_info(const py::array &array)
 {
@@ -232,6 +88,56 @@ print_array_info(const py::array &array)
         printf("%ld", array.shape(i));
     }
     printf(", dtype '%s'\n", dtype.get_type().attr("__name__").cast<std::string>().c_str());
+}
+
+ospray::cpp::Data
+data_from_numpy_array(py::array& array)
+{
+    const int ndim = array.ndim();
+    
+    if (ndim > 3)
+    {
+        printf("ERROR: more than 3 dimensions not supported in data_from_numpy_array(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::Data();
+    }
+    
+    const py::dtype& dtype = array.dtype();
+    ospcommon::math::vec3ul num_items { 1, 1, 1 };
+    ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
+    
+    for (int i = 0; i < ndim-1; i++)
+        num_items[i] = array.shape(i);
+    
+    // https://github.com/pybind/pybind11/issues/563#issuecomment-267836074
+    // Use 
+    //  py::isinstance<py::array_t<std::int32_t>>(buf) 
+    // instead of 
+    //  buf.dtype() == pybind11::dtype::of<std::int32_t>()
+    
+    if (py::isinstance<py::array_t<float>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
+    else if (py::isinstance<py::array_t<double>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
+    //else if (py::isinstance<py::array_t<int8_t>>(array))
+    //    return ospray::cpp::Data(num_items, byte_stride, (int8_t*)array.data());
+    //else if (py::isinstance<py::array_t<uint8_t>>(array))
+    //    return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
+    else if (py::isinstance<py::array_t<int32_t>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (int32_t*)array.data());
+    else if (py::isinstance<py::array_t<uint32_t>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
+    else if (py::isinstance<py::array_t<int64_t>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (int64_t*)array.data());
+    else if (py::isinstance<py::array_t<uint64_t>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
+        
+    printf("WARNING: unhandled array in data_from_numpy_array4(): ");
+    print_array_info(array);
+    printf("\n");
+    
+    return ospray::cpp::Data();
 }
 
 // Turn a numpy array of shape (..., 2|3|4) into a Data object of
@@ -247,14 +153,23 @@ print_array_info(const py::array &array)
     typedef vec_t<double, 4> vec4d;
 */
 ospray::cpp::Data
-data_constructor_vec(py::array& array)
+data_from_numpy_array_vec(py::array& array)
 {
     const int ndim = array.ndim();
+    
+    if (ndim > 3)
+    {
+        printf("ERROR: more than 3 dimensions not supported in data_from_numpy_array_vec(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::Data();
+    }
+    
     const int vecdim = array.shape(ndim-1);
     
     if (vecdim < 2 || vecdim > 4)
     {
-        printf("ERROR: last dimension needs be in [2,4] in data_constructor_vec(): ");
+        printf("ERROR: last dimension needs be in [2,4] in data_from_numpy_array_vec(): ");
         print_array_info(array);
         printf("\n");
         return ospray::cpp::Data();
@@ -264,152 +179,72 @@ data_constructor_vec(py::array& array)
     ospcommon::math::vec3ul num_items { 1, 1, 1 };
     ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
     
-    num_items.x = array.shape(0);
+    for (int i = 0; i < ndim-1; i++)
+        num_items[i] = array.shape(i);
     
-    if (ndim == 2)
-    {        
-        if (dtype.is(pybind11::dtype::of<double>()))
-        {
-            printf("WARNING: attempt to pass double precision vector values (shape %ld x %ld), but only single-precision (float) values are supported by OSPRay!\n",
-                array.shape(0), array.shape(1));
-            return ospray::cpp::Data();
-        }
-        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
-        {
-            printf("WARNING: attempt to pass 64-bit integer vector values (shape %ld x %ld), but these are not supported by OSPRay!\n",
-                array.shape(0), array.shape(1));
-            return ospray::cpp::Data();
-        }
-            
-        const int w = array.shape(1);
-        
-        if (w == 1)
-        {
-            if (dtype.is(pybind11::dtype::of<float>()))
-                return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
-            else if (dtype.is(pybind11::dtype::of<double>()))
-            {
-                printf("WARNING: passing Data object of double, are you sure that's what you want?\n");
-                return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-            }            
-            else if (dtype.is(pybind11::dtype::of<int>()))
-                return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint8_t>()))
-                return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
-                return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint64_t>()))
-                return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
-        }
-        else if (w == 2)
-        {
-            if (dtype.is(pybind11::dtype::of<float>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data());
-            else if (dtype.is(pybind11::dtype::of<int>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2i*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ui*)array.data());
-        }       
-        else if (w == 3)
-        {
-            if (dtype.is(pybind11::dtype::of<float>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data());
-            else if (dtype.is(pybind11::dtype::of<int>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3i*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data());
-        }
-        else if (w == 4)
-        {
-            if (dtype.is(pybind11::dtype::of<float>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data());
-            else if (dtype.is(pybind11::dtype::of<int>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data());
-            else if (dtype.is(pybind11::dtype::of<uint32_t>()))
-                return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());
-        }
-
-        printf("WARNING: unhandled data type in data_constructor(), ndim 2, shape=(%ld,%ld), kind '%c'!\n", 
-            array.shape(0), array.shape(1), dtype.kind());
-        
-        return ospray::cpp::Data();
-    }
-    else if (ndim == 3)        
-    {        
-        num_items.y = array.shape(1);
-        num_items.z = array.shape(2);
-        
-        if (dtype.is(pybind11::dtype::of<float>()))
-            return ospray::cpp::Data(num_items, byte_stride, (float*)array.data());
-        else if (dtype.is(pybind11::dtype::of<double>()))
-        {
-            printf("WARNING: passing Data object of double, are you sure that's what you want?\n");
-            return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
-        }
-        else if (dtype.is(pybind11::dtype::of<int>()))
-            return ospray::cpp::Data(num_items, byte_stride, (int*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint8_t>()))
-            return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint32_t>()))
-            return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data());
-        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
-            return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
-        
-        printf("WARNING: unhandled data type in data_constructor(), ndim 3, shape=(%ld,%ld,%ld), kind '%c'!\n", 
-            array.shape(0), array.shape(1), array.shape(2), dtype.kind());
-        
-        return ospray::cpp::Data();
-    }
-    
-    printf("WARNING: unhandled data type in data_constructor_vec(), ndim %d, kind '%c'!\n", ndim, dtype.kind());
-    
-    return ospray::cpp::Data();
-}
-
-ospray::cpp::Data
-texture_data_from_numpy_array(py::array& array)
-{
-    const int ndim = array.ndim();
-    const py::dtype& dtype = array.dtype();
-    
-    if (ndim != 3)
+    if (vecdim == 2)
     {
-        printf("ERROR: numpy array must have dimension 3 in texture_data_from_numpy_array()!\n");
-        return ospray::cpp::Data();
-    }
-        
-    ospcommon::math::vec3ul num_items { array.shape(0), array.shape(1), 1 };
-    ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
-    
-    const int w = array.shape(2);
-    
-    if (w == 3)
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data());
+        /*else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2d*)array.data());
+        else if (py::isinstance<py::array_t<int8_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2c*)array.data());
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2uc*)array.data());*/
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2i*)array.data());
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ui*)array.data());
+        else if (py::isinstance<py::array_t<int64_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2l*)array.data());
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ul*)array.data());    
+    }       
+    else if (vecdim == 3)
     {
         if (py::isinstance<py::array_t<float>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data());
-        else if (py::isinstance<py::array_t<int>>(array))
+        /*else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3d*)array.data());
+        else if (py::isinstance<py::array_t<int8_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3c*)array.data());
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3uc*)array.data());*/
+        else if (py::isinstance<py::array_t<int32_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3i*)array.data());
-        else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3uc*)array.data());                
         else if (py::isinstance<py::array_t<uint32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data());        
-    }
-    else if (w == 4)
-    {
-        if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data());
-        else if (py::isinstance<py::array_t<int>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data());
-        else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4uc*)array.data());                        
-        else if (py::isinstance<py::array_t<uint32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());        
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data());
+        else if (py::isinstance<py::array_t<int64_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3l*)array.data());
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ul*)array.data());       
     }
     else
     {
-        printf("ERROR: numpy array shape[2] must be 3 or 4 in texture_data_from_numpy_array()!\n");
-        return ospray::cpp::Data();        
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data());
+        /*else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4d*)array.data());
+        else if (py::isinstance<py::array_t<int8_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4c*)array.data());
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4uc*)array.data());*/
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data());
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data());
+        else if (py::isinstance<py::array_t<int64_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4l*)array.data());
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ul*)array.data());    
     }
+    
+    printf("WARNING: unhandled array in data_from_numpy_array_vec(): ");
+    print_array_info(array);
+    printf("\n");
+        
+    return ospray::cpp::Data();
 }
 
 template<typename T>
@@ -923,6 +758,7 @@ PYBIND11_MODULE(ospray, m)
         .def(py::self / py::self)
     ;
     
-    m.def("texture_data_from_numpy_array", texture_data_from_numpy_array);
+    m.def("data_constructor", data_from_numpy_array);
+    m.def("data_constructor_vec", data_from_numpy_array_vec);
 }
 

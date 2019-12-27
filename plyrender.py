@@ -80,7 +80,7 @@ if 'vertex_colors' in plymesh:
 if mesh_type.startswith('pure-') and not force_subdivision_mesh:
     mesh = ospray.Geometry('mesh')
     indices = indices.reshape((-1, minn))
-    mesh.set_param('index', indices)
+    mesh.set_param('index', ospray.data_constructor_vec(indices))
     # Get a OSPRAY STATUS: ospray::Mesh ignoring 'index' array with wrong element type (should be vec3ui)
     # when passing a pure-quad index array
     
@@ -99,17 +99,17 @@ elif mesh_type == 'mixed-tris-and-quads' and not force_subdivision_mesh:
         first += n
         
     new_indices = numpy.array(new_indices, dtype=numpy.uint32).reshape((-1, 4))    
-    mesh.set_param('index', new_indices)
+    mesh.set_param('index', ospray.data_constructor_vec(new_indices))
 else:
     # Use subdivision surface
     mesh = ospray.Geometry('subdivision')
     mesh.set_param('level', subvision_level)
-    mesh.set_param('index', indices)
+    mesh.set_param('index', ospray.data_constructor_vec(indices))
     mesh.set_param('face', loop_length)
     
-mesh.set_param('vertex.position', vertices)
+mesh.set_param('vertex.position', ospray.data_constructor_vec(vertices))
 if colors is not None:
-    mesh.set_param('vertex.color', colors)
+    mesh.set_param('vertex.color', ospray.data_constructor_vec(colors))
 
 mesh.commit()
 

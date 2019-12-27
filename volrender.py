@@ -294,7 +294,7 @@ camera.commit()
 #pixel = numpy.ones((1,1,3), numpy.uint8)
 #backplate = ospray.Texture("texture2d")
 #backplate.set_param('format', ospray.OSP_TEXTURE_RGB8)
-#backplate.set_param('data', ospray.texture_data_from_numpy_array(pixel))
+#backplate.set_param('data', ospray.data_constructor_vec(pixel))
 #backplate.commit()
 
 renderer = ospray.Renderer(RENDERER)

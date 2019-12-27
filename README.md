@@ -124,30 +124,24 @@ are automatically converted to OSPRay types:
 
 - A 2/3/4-tuple of float or int is converted to a corresponding 
   `ospcommon::math::vec<n>[i|f]` value. If there is at least one float
-  in a tuple it is converted to a `vec<n>f` value, otherwise a `vec<n>i`
+  in the tuple it is converted to a `vec<n>f` value, otherwise a `vec<n>i`
   value is produced.
-  
-- A single-dimensional NumPy array is converted to a `ospray::cpp::Data` value
-  of the corresponding C++ type. E.g. a NumPy array of N `numpy.uint32` values 
-  is converted to a `Data` object of type `uint32_t`.
-  
-- Two-dimensional NumPy arrays are converted to `ospray::cpp::Data` values
-  of the corresponding *vector* type, based on the second dimension of the array.
-  E.g. a NumPy array of shape (N,3) of `numpy.float32` is converted to a `Data` object
-  of `ospcommon::math::vec3f` values. 
-  
-  An exception here is a NumPy array of shape (N, 1). This is converted
-  to a single-dimensional `Data` object of N values.
-  
-- Three-dimensional NumPy arrays are converted to `ospray::cpp::Data` values
-  of the corresponding type and dimensions. 
   
 - Lists of OSPRay objects are turned into a `Data` object. The list items
   must all have the same type and are currently limited to GeometricModel, 
   Instance, Material and VolumetricModel. 
 
-- Passing regular lists of Python numbers is not supported. Use
-  NumPy arrays for those cases.
+For passing arrays of numbers, such as vertex coordinates or lists of isosurface
+values, use NumPy arrays. These can be converted to a `Data` object using the 
+`data_constructor()` or `data_constructor_vec()` functions. The `data_constructor()`
+function directly converts the NumPy array to a `Data` array of the same dimensions
+and data type. 
+
+The `data_constructor_vec()` function can be used for generating `Data` arrays of 
+`ospcommon::math::vec<n><t>` values. The last dimension of the passed array must 
+be 2, 3 or 4.
+  
+Passing regular lists of Python numbers is not supported. Use NumPy arrays for those cases.
 
 Examples:
 
@@ -156,12 +150,12 @@ Examples:
 light1 = ospray.Light('ambient')
 light1.set_param('color', (1, 1, 1))
 
-# NumPy array to ospray::cpp::Data
+# NumPy array to ospray::cpp::Data of vec3ui values
 index = numpy.array([
     [0, 1, 2], [1, 2, 3]
 ], dtype=numpy.uint32)
 mesh = ospray.Geometry('mesh')
-mesh.set_param('index', index)
+mesh.set_param('index', ospray.data_constructor_vec(index))
 
 camera = ospray.Camera('perspective')
 # Tuple of floats -> ospcommon::math::vec3f
