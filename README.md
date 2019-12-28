@@ -3,7 +3,7 @@
 These are experimental Python 3.x bindings for [OSPRay](https://www.ospray.org).
 Originally just to try out [pybind11](https://github.com/pybind/pybind11),
 but they are pretty useful in their current state, as Pybind11 is an amazing little
-library (inpsired by the just-as-great Boost.Python).
+library (inspired by the just-as-great Boost.Python).
 
 Note that this code is targeted at the 2.0.x branch of OSPRay.
 
@@ -51,9 +51,9 @@ camera.set_param('up', cam_up)
 camera.commit()
 
 mesh = ospray.Geometry('mesh')
-mesh.set_param('vertex.position', vertex)
-mesh.set_param('vertex.color', color)
-mesh.set_param('index', index)
+mesh.set_param('vertex.position', ospray.data_constructor_vec(vertex))
+mesh.set_param('vertex.color', ospray.data_constructor_vec(color))
+mesh.set_param('index', ospray.data_constructor_vec(index))
 mesh.commit()
 
 gmodel = ospray.GeometricModel(mesh)
@@ -76,6 +76,7 @@ world = ospray.World()
 world.set_param('instance', [instance])
 
 light = ospray.Light('ambient')
+#light.set_param('color', (1, 1, 1))
 light.commit()
 
 world.set_param('light', [light])
