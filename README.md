@@ -76,7 +76,6 @@ world = ospray.World()
 world.set_param('instance', [instance])
 
 light = ospray.Light('ambient')
-#light.set_param('color', (1, 1, 1))
 light.commit()
 
 world.set_param('light', [light])
@@ -118,19 +117,7 @@ img.save('colors.png')
   a NumPy array. Note that the pixel order is the same as what `FrameBuffer.map()`
   returns: the first pixel returned is at the lower left pixel of the image.
 
-## Automatic data type mapping
-
-When setting parameter values with `set_param()` certain Python values 
-are automatically converted to OSPRay types:
-
-- A 2/3/4-tuple of float or int is converted to a corresponding 
-  `ospcommon::math::vec<n>[i|f]` value. If there is at least one float
-  in the tuple it is converted to a `vec<n>f` value, otherwise a `vec<n>i`
-  value is produced.
-  
-- Lists of OSPRay objects are turned into a `Data` object. The list items
-  must all have the same type and are currently limited to GeometricModel, 
-  Instance, Material and VolumetricModel. 
+## Data type mapping
 
 For passing arrays of numbers, such as vertex coordinates or lists of isosurface
 values, use NumPy arrays. These can be converted to a `Data` object using the 
@@ -141,7 +128,24 @@ and data type.
 The `data_constructor_vec()` function can be used for generating `Data` arrays of 
 `ospcommon::math::vec<n><t>` values. The last dimension of the passed array must 
 be 2, 3 or 4.
+
+When setting parameter values with `set_param()` certain Python values 
+are automatically converted to OSPRay types:
+
+- A 2/3/4-tuple of float or int is converted to a corresponding 
+  `ospcommon::math::vec<n>[i|f]` value. If there is at least one float
+  in the tuple it is converted to a `vec<n>f` value, otherwise a `vec<n>i`
+  value is produced.
   
+- A NumPy array is converted to a `Data` array using `data_constructor()`, so
+  you can pass Numpy arrays directly to `set_param()`. However, for parameters
+  that expect vector values an explicit conversion using `data_constructor_vec()` 
+  is needed.
+  
+- Lists of OSPRay objects are turned into a `Data` object. The list items
+  must all have the same type and are currently limited to GeometricModel, 
+  Instance, Material and VolumetricModel. 
+
 Passing regular lists of Python numbers is not supported. Use NumPy arrays for those cases.
 
 Examples:

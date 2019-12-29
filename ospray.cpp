@@ -87,7 +87,7 @@ print_array_info(const py::array &array)
         if (i > 0) printf("x");
         printf("%ld", array.shape(i));
     }
-    printf(", dtype '%s'\n", dtype.get_type().attr("__name__").cast<std::string>().c_str());
+    printf("), dtype kind '%c' itemsize %ld\n", dtype.kind(), dtype.itemsize());
 }
 
 ospray::cpp::Data
@@ -122,8 +122,8 @@ data_from_numpy_array(py::array& array)
         return ospray::cpp::Data(num_items, byte_stride, (double*)array.data());
     //else if (py::isinstance<py::array_t<int8_t>>(array))
     //    return ospray::cpp::Data(num_items, byte_stride, (int8_t*)array.data());
-    //else if (py::isinstance<py::array_t<uint8_t>>(array))
-    //    return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
+    else if (py::isinstance<py::array_t<uint8_t>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data());
     else if (py::isinstance<py::array_t<int32_t>>(array))
         return ospray::cpp::Data(num_items, byte_stride, (int32_t*)array.data());
     else if (py::isinstance<py::array_t<uint32_t>>(array))
@@ -133,7 +133,7 @@ data_from_numpy_array(py::array& array)
     else if (py::isinstance<py::array_t<uint64_t>>(array))
         return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data());
         
-    printf("WARNING: unhandled array in data_from_numpy_array4(): ");
+    printf("WARNING: unhandled array in data_from_numpy_array(): ");
     print_array_info(array);
     printf("\n");
     
@@ -189,9 +189,9 @@ data_from_numpy_array_vec(py::array& array)
         /*else if (py::isinstance<py::array_t<double>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2d*)array.data());
         else if (py::isinstance<py::array_t<int8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2c*)array.data());
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2c*)array.data());*/
         else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2uc*)array.data());*/
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2uc*)array.data());
         else if (py::isinstance<py::array_t<int32_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2i*)array.data());
         else if (py::isinstance<py::array_t<uint32_t>>(array))
@@ -208,9 +208,9 @@ data_from_numpy_array_vec(py::array& array)
         /*else if (py::isinstance<py::array_t<double>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3d*)array.data());
         else if (py::isinstance<py::array_t<int8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3c*)array.data());
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3c*)array.data());*/
         else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3uc*)array.data());*/
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3uc*)array.data());
         else if (py::isinstance<py::array_t<int32_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3i*)array.data());
         else if (py::isinstance<py::array_t<uint32_t>>(array))
@@ -227,9 +227,9 @@ data_from_numpy_array_vec(py::array& array)
         /*else if (py::isinstance<py::array_t<double>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4d*)array.data());
         else if (py::isinstance<py::array_t<int8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4c*)array.data());
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4c*)array.data());*/
         else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4uc*)array.data());*/
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4uc*)array.data());
         else if (py::isinstance<py::array_t<int32_t>>(array))
             return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data());
         else if (py::isinstance<py::array_t<uint32_t>>(array))
