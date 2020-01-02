@@ -6,6 +6,7 @@ import ospray
 
 W = 1920
 H = 1080
+
 RENDERER = 'scivis'
 
 argv = ospray.init(sys.argv)
@@ -151,49 +152,55 @@ volume.commit()
 
 T = 16
 
-#tfcolors = numpy.array([[0, 0, 0], [0, 0, 1]], dtype=numpy.float32)
-#tfopacities = numpy.array([0, 1], dtype=numpy.float32)
+if False:
+    tfcolors = numpy.array([[0, 0, 0], [0, 0, 1]], dtype=numpy.float32)
+    tfopacities = numpy.array([0, 1], dtype=numpy.float32)
+    
+else:
+    # Generate equidistant TF from sparse specification
+    tfcolors = numpy.zeros((T,3), dtype=numpy.float32)
+    tfopacities = numpy.zeros(T, dtype=numpy.float32)
 
-tfcolors = numpy.zeros((T,3), dtype=numpy.float32)
-tfopacities = numpy.zeros(T, dtype=numpy.float32)
+    positions = numpy.array([
+        0, 0.224, 0.312, 0.362, 1   
+    ], dtype=numpy.float32)
 
-positions = numpy.array([
-    0, 0.224, 0.312, 0.362, 1   
-], dtype=numpy.float32)
+    colors = numpy.array([
+        [0, 0, 1],
+        [0, 0, 1],
+        [0, 0, 0],
+        [1, 1, 1],
+        [1, 1, 1],
+    ], dtype=numpy.float32)
 
-colors = numpy.array([
-    [0, 0, 1],
-    [0, 0, 1],
-    [0, 0, 0],
-    [1, 1, 1],
-    [1, 1, 1],
-], dtype=numpy.float32)
+    opacities = numpy.array([
+        1, 1, 1, 0, 0
+    ], dtype=numpy.float32)
 
-opacities = numpy.array([
-    1, 1, 1, 0, 0
-], dtype=numpy.float32)
+    P = len(positions)
 
-P = len(positions)
-
-idx = 0
-pos = 0.0
-while idx < T:
-    value = numpy.interp(pos, positions, numpy.arange(P))
+    idx = 0
+    pos = 0.0
+    while idx < T:
+        value = numpy.interp(pos, positions, numpy.arange(P))
+            
+        lowidx = int(value)
+        highidx = min(lowidx + 1, P-1)
+        factor = value - lowidx
         
-    lowidx = int(value)
-    highidx = min(lowidx + 1, P-1)
-    factor = value - lowidx
-    
-    print(value, lowidx, highidx, factor)
+        print(value, lowidx, highidx, factor)
 
-    tfcolors[idx] = (1-factor) * colors[lowidx] + factor * colors[highidx]
-    tfopacities[idx] = (1-factor) * opacities[lowidx] + factor * opacities[highidx]
+        tfcolors[idx] = (1-factor) * colors[lowidx] + factor * colors[highidx]
+        tfopacities[idx] = (1-factor) * opacities[lowidx] + factor * opacities[highidx]
+        
+        idx += 1
+        pos += 1.0/(T-1)
     
-    idx += 1
-    pos += 1.0/(T-1)
+print('tfcolors', tfcolors.shape)
+print('tfopacities', tfopacities.shape)
     
 transfer_function = ospray.TransferFunction('piecewise_linear')
-transfer_function.set_param('color', tfcolors)
+transfer_function.set_param('color', ospray.data_constructor_vec(tfcolors))
 transfer_function.set_param('opacity', tfopacities)
 transfer_function.set_param('valueRange', tuple(value_range))
 transfer_function.commit()
