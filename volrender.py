@@ -36,6 +36,20 @@ device.commit()
 
 # Parse arguments
 
+def usage():
+    print('%s [options] file.raw|file.h5|file.hdf5' % sys.argv[0])
+    print()
+    print('Options:')
+    print(' -d xdim,ydim,zdim       .raw dimensions')
+    print(' -D dataset_name         HDF5 dataset name')
+    print(' -i isovalue')
+    print(' -I width,height         Image resolution')
+    print(' -p                      Use pathtracer')
+    print(' -s xs,ys,zs             Grid spacing')
+    print(' -S samples')
+    print(' -v minval,maxval')
+    print()
+
 dimensions = None
 dataset_name = None
 isovalue = None
@@ -44,7 +58,12 @@ samples = 4
 voxel_type = None
 value_range = None
 
-optlist, args = getopt.getopt(argv[1:], 'd:D:i:I:l:ps:S:v:')
+try:
+    optlist, args = getopt.getopt(argv[1:], 'd:D:i:I:ps:S:v:')
+except getopt.GetoptError as err:
+    print(err)
+    usage()
+    sys.exit(2)
 
 for o, a in optlist:
     if o == '-d':
@@ -56,8 +75,6 @@ for o, a in optlist:
         isovalue = float(a)
     elif o == '-I':
         W, H = map(int, a.split(','))
-    elif o == '-l':
-        subvision_level = float(a)
     elif o == '-p':
         RENDERER = 'pathtracer'
     elif o == '-s':
@@ -69,6 +86,10 @@ for o, a in optlist:
     elif o == '-v':
         value_range = tuple(map(float, a.split(',')))
 
+if len(args) == 0:
+    usage()
+    sys.exit(2)
+    
 volfile = args[0]
 
 # Read file
