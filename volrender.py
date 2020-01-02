@@ -136,7 +136,7 @@ print('value range', value_range)
 print('spacing', grid_spacing)
 print('extent', extent)
 
-print(numpy.histogram(data))
+print('histo', numpy.histogram(data))
 
 assert value_range is not None and 'Set value range with -v min,max'
 

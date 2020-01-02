@@ -107,7 +107,7 @@ data_from_numpy_array(py::array& array)
     ospcommon::math::vec3ul num_items { 1, 1, 1 };
     ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
     
-    for (int i = 0; i < ndim-1; i++)
+    for (int i = 0; i < ndim; i++)
         num_items[i] = array.shape(i);
     
     // https://github.com/pybind/pybind11/issues/563#issuecomment-267836074
