@@ -1,6 +1,7 @@
 # OSPY - Python bindings for OSPRay
 
 These are Python 3.x bindings for [OSPRay](https://www.ospray.org).
+More specifically, they wrap the OSPRay C++ API (plus a few C API routines).
 Most OSPRay objects can be created from Python. Due to the general
 method of setting object parameters in OSPRay these are supported
 on all objects as well. But see the notes of data type mapping
@@ -13,8 +14,7 @@ Missing features and/or limitations:
 - Not all `Device` methods are available
 - Currently no way to get variance value of a `FrameBuffer`, plus 
   no support for picking
-- Not all mathematical operations on `affine3f` are supported
-- Affine values of other sizes and data types are not included
+- Not all mathematical operations on `affine3f` are supported. Affine values of other sizes and data types are not included.
 - Missing object types: `ImageOperation`
 
 These bindings started just to try out [pybind11](https://github.com/pybind/pybind11),
