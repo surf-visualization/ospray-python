@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-import sys, getopt, os
+import sys, getopt, os, time
 import numpy
 from PIL import Image
 import ospray
+
+t0 = time.time()
 
 W = 1920
 H = 1080
@@ -41,6 +43,7 @@ def usage():
     print('%s [options] file.raw|file.h5|file.hdf5' % sys.argv[0])
     print()
     print('Options:')
+    print(' -b r,g,b                Background color')
     print(' -d xdim,ydim,zdim       .raw dimensions')
     print(' -D dataset_name         HDF5 dataset name')
     print(' -i isovalue')
@@ -51,6 +54,7 @@ def usage():
     print(' -v minval,maxval')
     print()
 
+bgcolor = (1.0, 1.0, 1.0)
 dimensions = None
 dataset_name = None
 isovalue = None
@@ -60,14 +64,17 @@ voxel_type = None
 value_range = None
 
 try:
-    optlist, args = getopt.getopt(argv[1:], 'd:D:i:I:ps:S:v:')
+    optlist, args = getopt.getopt(argv[1:], 'b:d:D:i:I:ps:S:v:')
 except getopt.GetoptError as err:
     print(err)
     usage()
     sys.exit(2)
 
 for o, a in optlist:
-    if o == '-d':
+    if o == '-b':
+        bgcolor = tuple(map(float, a.split(',')))
+        assert len(bgcolor) == 3
+    elif o == '-d':
         dimensions = tuple(map(int, a.split(',')))
         assert len(dimensions) == 3
     elif o == '-D':
@@ -140,6 +147,12 @@ print('extent', extent)
 print('histo', numpy.histogram(data))
 
 assert value_range is not None and 'Set value range with -v min,max'
+
+# Keep a reference to the numpy array around, as it will get
+# deallocated otherwise
+saved_data = data
+
+data = ospray.data_constructor(data, is_shared=True)
 
 volume = ospray.Volume('structured_regular')
 volume.set_param('dimensions', dimensions)
@@ -326,13 +339,15 @@ camera.commit()
 #backplate.commit()
 
 renderer = ospray.Renderer(RENDERER)
-if isovalue is not None:
-    renderer.set_param('bgColor', 1.0)
-else:
-    renderer.set_param('bgColor', (0.0, 0.0, 0.0))
-    #renderer.set_param('backplate', backplate)
-#if RENDERER == 'scivis':
-#    renderer.set_param('volumeSamplingRate', 1.0)
+renderer.set_param('bgColor', bgcolor)
+
+#if isovalue is not None:
+#    renderer.set_param('bgColor', 1.0)
+#else:
+#    renderer.set_param('bgColor', (0.0, 0.0, 0.0))
+#    #renderer.set_param('backplate', backplate)
+if RENDERER == 'scivis':
+    renderer.set_param('volumeSamplingRate', 4.0)
 renderer.commit()
 
 # Framebuffer
@@ -367,3 +382,6 @@ img.save('colors.png')
 #
 #img = Image.frombuffer('L', (W,H), depth, 'raw', 'L', 0, 1)
 #img.save('depth.tif')
+
+t1 = time.time()
+print('All done in %.3fs' % (t1-t0))
