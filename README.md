@@ -153,7 +153,7 @@ Examples:
 ```
 # 3-tuple -> vec3f
 light1 = ospray.Light('ambient')
-light1.set_param('color', (1, 1, 1))
+light1.set_param('color', (1.0, 1, 1))
 
 # NumPy array to ospray::cpp::Data of vec3ui values
 index = numpy.array([
@@ -163,7 +163,7 @@ mesh = ospray.Geometry('mesh')
 mesh.set_param('index', ospray.data_constructor_vec(index))
 
 camera = ospray.Camera('perspective')
-# Tuple of floats -> ospcommon::math::vec3f
+# Tuple of floats -> vec3f
 camera.set_param('up', (0.0, 0.0, 1.0))
 # NumPy array to ospcommon::math::vec3f isn't directly possible.
 # Use manual conversion to tuple, or set a tuple directly
