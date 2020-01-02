@@ -1,11 +1,25 @@
 # OSPY - Python bindings for OSPRay
 
-These are experimental Python 3.x bindings for [OSPRay](https://www.ospray.org).
-Originally just to try out [pybind11](https://github.com/pybind/pybind11),
-but they are pretty useful in their current state, as Pybind11 is an amazing little
-library (inspired by the just-as-great Boost.Python).
+These are Python 3.x bindings for [OSPRay](https://www.ospray.org).
+Most OSPRay objects can be created from Python. Due to the general
+method of setting object parameters in OSPRay these are supported
+on all objects as well. But see the notes of data type mapping
+below.
 
 Note that this code is targeted at the 2.0.x branch of OSPRay.
+
+Missing features and/or limitations:
+- Shared `Data` objects (all data is currently copied)
+- Not all `Device` methods are available
+- Currently no way to get variance value of a `FrameBuffer`, plus 
+  no support for picking
+- Not all mathematical operations on `affine3f` are supported
+- Affine values of other sizes and data types are not included
+- Missing object types: `ImageOperation`
+
+These bindings started just to try out [pybind11](https://github.com/pybind/pybind11),
+but they are pretty useful in their current state, as Pybind11 is an amazing little
+library (inspired by the just-as-great Boost.Python).
 
 ## Example (after ospTutorial.cpp)
 
@@ -94,7 +108,6 @@ framebuffer.clear()
 
 future = framebuffer.render_frame(renderer, camera, world)
 future.wait()
-print(future.is_ready())
 
 for frame in range(10):
     framebuffer.render_frame(renderer, camera, world)
@@ -127,7 +140,7 @@ and data type.
 
 The `data_constructor_vec()` function can be used for generating `Data` arrays of 
 `ospcommon::math::vec<n><t>` values. The last dimension of the passed array must 
-be 2, 3 or 4.
+be 2, 3 or 4. 
 
 When setting parameter values with `set_param()` certain Python values 
 are automatically converted to OSPRay types:
@@ -147,6 +160,10 @@ are automatically converted to OSPRay types:
   Instance, Material and VolumetricModel. 
 
 Passing regular lists of Python numbers is not supported. Use NumPy arrays for those cases.
+
+Also note that OSPRay currently does not support all integer
+types for `Data` objects (e.g. not `int8`), nor all combinations
+of vector length and data type (e.g. not `vec2d`).
 
 Examples:
 
