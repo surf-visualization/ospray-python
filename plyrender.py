@@ -31,6 +31,7 @@ device.commit()
 # Parse arguments
 
 force_subdivision_mesh = False
+samples = 4
 subvision_level = 5.0
 
 optlist, args = getopt.getopt(argv[1:], 'l:s')
@@ -193,7 +194,7 @@ world.commit()
 print('World bound', world.get_bounds())
 
 renderer = ospray.Renderer('pathtracer')
-renderer.set_param('bgColor', 1.0)
+renderer.set_param('bgColor', (1.0, 1, 1, 0))
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA
@@ -202,14 +203,14 @@ channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_
 framebuffer = ospray.FrameBuffer((W,H), format, channels)
 framebuffer.clear()
 
-future = framebuffer.render_frame(renderer, camera, world)
-future.wait()
-#print(future.is_ready())
-
-for frame in range(10):
+for frame in range(samples):
     future = framebuffer.render_frame(renderer, camera, world)
     future.wait()
+    sys.stdout.write('.')
+    sys.stdout.flush()
     
+sys.stdout.write('\n')
+
 colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
 print(colors.shape)
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)

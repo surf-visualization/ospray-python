@@ -126,8 +126,9 @@ elif ext in ['.h5', '.hdf5']:
     data = numpy.array(dset[:])    
     f.close()
     
-    dimensions = tuple(reversed(data.shape))
-    #data = data.reshape(dimensions)
+    # KJI -> IJK
+    data = numpy.swapaxes(data, 0, 2)
+    dimensions = data.shape
     
     if value_range is None:
         value_range = tuple(map(float, (numpy.min(data), numpy.max(data))))
@@ -135,7 +136,10 @@ elif ext in ['.h5', '.hdf5']:
     dtype = str(data.dtype)
         
     voxel_type = {
+        'int8': ospray.OSP_CHAR,
         'uint8': ospray.OSP_UCHAR,
+        'int16': ospray.OSP_SHORT,
+        'uint16': ospray.OSP_USHORT,
         'float32': ospray.OSP_FLOAT,
         'float64': ospray.OSP_DOUBLE,
     }[dtype]
