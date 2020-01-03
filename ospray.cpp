@@ -644,6 +644,7 @@ PYBIND11_MODULE(ospray, m)
     define_enums(m);
     
     m.def("init", &init);
+    m.def("shutdown", &ospShutdown);
         
     declare_managedobject<ManagedCamera>(m, "ManagedCamera");
     declare_managedobject<ManagedData>(m, "ManagedData");
