@@ -58,6 +58,7 @@ def usage():
     print(' -p                      Use pathtracer')
     print(' -s xs,ys,zs             Grid spacing')
     print(' -S samples')
+    print(' -t voxel_type           Voxel data type')
     print(' -v minval,maxval')
     print()
 
@@ -73,7 +74,7 @@ value_range = None
 
 
 try:
-    optlist, args = getopt.getopt(argv[1:], 'b:d:D:f:i:I:ps:S:v:')
+    optlist, args = getopt.getopt(argv[1:], 'b:d:D:f:i:I:ps:S:t:v:')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -104,6 +105,10 @@ for o, a in optlist:
         grid_spacing = numpy.array(grid_spacing, dtype=numpy.float32)
     elif o == '-S':
         samples = int(a)
+    elif o == '-t':
+        voxel_type = {
+            'uchar':    ospray.OSP_UCHAR
+        }[a]
     elif o == '-v':
         value_range = tuple(map(float, a.split(',')))
 
@@ -115,7 +120,7 @@ volfile = args[0]
 
 # Read file
 
-extent = numpy.zeros((3,2), 'float32')
+extent = numpy.zeros((2,3), 'float32')
 
 ext = os.path.splitext(volfile)[-1]
 
@@ -123,9 +128,11 @@ if ext == '.raw':
     assert dimensions is not None and 'Set dimensions with -d x,y,z'
     data = numpy.fromfile(volfile, dtype=numpy.uint8)    
     data = data.reshape(dimensions)
-    voxel_type = ospray.OSP_UCHAR
     
-    extent[:,1] = dimensions * grid_spacing   
+    if voxel_type is None:
+        voxel_type = ospray.OSP_UCHAR
+    
+    extent[1,:] = dimensions * grid_spacing   
     
 elif ext in ['.h5', '.hdf5']:
     assert have_h5py and 'h5py module could not be loaded!'
