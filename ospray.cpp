@@ -395,7 +395,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
 
 template<typename T>
 ospray::cpp::Data
-build_data_from_list(const std::string& listcls, const py::list &values)
+build_data_from_list(const std::string &listcls, const py::list &values)
 {
     std::vector<T> items;
         
@@ -441,7 +441,7 @@ set_param_list(T &self, const std::string &name, const py::list &values)
 
 template<typename T>
 void
-set_param_numpy_array(T &self, const std::string &name, py::array& array)
+set_param_numpy_array(T &self, const std::string &name, py::array &array)
 {
 #if 0    
     if (array.ndim() == 1 && array.shape(0) == 1)
@@ -478,43 +478,113 @@ set_param_numpy_array(T &self, const std::string &name, py::array& array)
 
 template<typename T>
 void
-set_param_affine3f(T& self, const std::string &name, const ospcommon::math::affine3f &value)
+set_param_affine3f(T &self, const std::string &name, const ospcommon::math::affine3f &value)
 {
     self.setParam(name, value);
 }
 
 template<typename T>
 void
-set_param_material(T& self, const std::string &name, const ospray::cpp::Material &value)
+set_param_material(T &self, const std::string &name, const ospray::cpp::Material &value)
 {
     self.setParam(name, value);
 }
 
 template<typename T>
 void
-set_param_texture(T& self, const std::string &name, const ospray::cpp::Texture &value)
+set_param_texture(T &self, const std::string &name, const ospray::cpp::Texture &value)
 {
     self.setParam(name, value);
 }
 
 template<typename T>
 void
-set_param_transfer_function(T& self, const std::string &name, const ospray::cpp::TransferFunction &value)
+set_param_transfer_function(T &self, const std::string &name, const ospray::cpp::TransferFunction &value)
 {
     self.setParam(name, value);
 }
 
 template<typename T>
 void
-set_param_volumetric_model(T& self, const std::string &name, const ospray::cpp::VolumetricModel &value)
+set_param_volumetric_model(T &self, const std::string &name, const ospray::cpp::VolumetricModel &value)
 {
     self.setParam(name, value);
 }
+
+template<typename T>
+void
+remove_param(T &self, const std::string &name)
+{
+    self.removeParam(name.c_str());
+}
+
+template<typename T>
+py::tuple
+get_bounds(T &self)
+{
+    ospcommon::math::box3f bounds = self.getBounds();
+    
+    return py::make_tuple(
+        bounds.lower.x, bounds.lower.y, bounds.lower.z,
+        bounds.upper.x, bounds.upper.y, bounds.upper.z
+    );
+}
+
+/*
+template<typename T>
+py::tuple
+get_handle(T &self)
+{
+    return self.handle();
+}
+*/
+
+template<typename T>
+bool
+same_handle(T &self, const T &other)
+{
+    return self.handle() == other.handle();
+}
+
+template<typename T>
+void
+declare_managedobject(py::module &m, const char *name)
+{
+    py::class_<T>(m, name)
+        //(void (T::*)(const std::string &, const float &)) 
+        // XXX can probably replace most of these with lambas here
+        .def("set_param", &set_param_bool<T>)
+        .def("set_param", &set_param_int<T>)
+        .def("set_param", &set_param_float<T>)
+        .def("set_param", &set_param_string<T>)
+        .def("set_param", &set_param_tuple<T>)
+        .def("set_param", &set_param_list<T>)
+        .def("set_param", &set_param_data<T>)
+        .def("set_param", &set_param_numpy_array<T>)
+        .def("set_param", &set_param_affine3f<T>)
+        .def("set_param", &set_param_material<T>)
+        .def("set_param", &set_param_texture<T>)        
+        .def("set_param", &set_param_transfer_function<T>)        
+        .def("set_param", &set_param_volumetric_model<T>)        
+        .def("remove_param", &remove_param<T>) 
+        .def("commit", &T::commit)
+        .def("get_bounds", &get_bounds<T>)
+        //.def("handle", &get_handle<T>)      // XXX no viable conversion 
+        .def("same_handle", &same_handle<T>)
+        .def("__repr__", 
+            [name](const T& self) {
+                std::stringstream stream;
+                stream << std::hex << (size_t)(self.handle());
+                return "<ospray." + std::string(name).substr(7) + " referencing 0x" + stream.str() + ">";
+            })
+    ;
+}
+
 
 // FrameBuffer
 
 ospray::cpp::FrameBuffer
-framebuffer_create(py::tuple& imgsize, OSPFrameBufferFormat format, int channels)
+framebuffer_create(py::tuple &imgsize, OSPFrameBufferFormat format, int channels)
 {
     int w = py::cast<int>(imgsize[0]);
     int h = py::cast<int>(imgsize[1]);
@@ -524,7 +594,7 @@ framebuffer_create(py::tuple& imgsize, OSPFrameBufferFormat format, int channels
 }
 
 py::array
-framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, py::tuple& imgsize, OSPFrameBufferFormat format=OSP_FB_NONE)
+framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, py::tuple &imgsize, OSPFrameBufferFormat format=OSP_FB_NONE)
 {
     if (channel == OSP_FB_ACCUM || channel == OSP_FB_VARIANCE)
         throw std::invalid_argument("requested framebuffer channel cannot be mapped");
@@ -564,66 +634,7 @@ framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, p
     return res;
 }
 
-template<typename T>
-py::tuple
-get_bounds(T &self)
-{
-    ospcommon::math::box3f bounds = self.getBounds();
-    
-    return py::make_tuple(
-        bounds.lower.x, bounds.lower.y, bounds.lower.z,
-        bounds.upper.x, bounds.upper.y, bounds.upper.z
-    );
-}
-
-/*
-template<typename T>
-py::tuple
-get_handle(T &self)
-{
-    return self.handle();
-}
-*/
-
-template<typename T>
-bool
-same_handle(T& self, const T& other)
-{
-    return self.handle() == other.handle();
-}
-
-template<typename T>
-void
-declare_managedobject(py::module& m, const char *name)
-{
-    py::class_<T>(m, name)
-        //(void (T::*)(const std::string &, const float &)) 
-        // XXX can probably replace most of these with lambas here
-        .def("set_param", &set_param_bool<T>)
-        .def("set_param", &set_param_int<T>)
-        .def("set_param", &set_param_float<T>)
-        .def("set_param", &set_param_string<T>)
-        .def("set_param", &set_param_tuple<T>)
-        .def("set_param", &set_param_list<T>)
-        .def("set_param", &set_param_data<T>)
-        .def("set_param", &set_param_numpy_array<T>)
-        .def("set_param", &set_param_affine3f<T>)
-        .def("set_param", &set_param_material<T>)
-        .def("set_param", &set_param_texture<T>)        
-        .def("set_param", &set_param_transfer_function<T>)        
-        .def("set_param", &set_param_volumetric_model<T>)        
-        .def("commit", &T::commit)
-        .def("get_bounds", &get_bounds<T>)
-        //.def("handle", &get_handle<T>)      // XXX no viable conversion 
-        .def("same_handle", &same_handle<T>)
-        .def("__repr__", 
-            [name](const T& self) {
-                std::stringstream stream;
-                stream << std::hex << (size_t)(self.handle());
-                return "<ospray." + std::string(name).substr(7) + " referencing 0x" + stream.str() + ">";
-            })
-    ;
-}
+// affine3f
 
 ospcommon::math::affine3f 
 make_rotate(const ospcommon::math::vec3f &v, const float &f)
@@ -636,6 +647,8 @@ make_identity()
 {
     return ospcommon::math::affine3f(ospcommon::math::one);
 }
+
+// Main module
  
 PYBIND11_MODULE(ospray, m) 
 {
