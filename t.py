@@ -64,12 +64,12 @@ world = ospray.World()
 world.set_param('instance', [instance])
 
 light = ospray.Light('ambient')
-#light.set_param('color', (1, 1, 1))
+light.set_param('color', (1.0, 1, 1))
+light.set_param('intensity', 1.0)
 light.commit()
 
 world.set_param('light', [light])
 world.commit()
-#print(world.get_bounds())
 
 renderer = ospray.Renderer('pathtracer')
 renderer.set_param('aoSamples', 1)
@@ -82,24 +82,23 @@ channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_
 framebuffer = ospray.FrameBuffer((W,H), format, channels)
 framebuffer.clear()
 
-future = framebuffer.render_frame(renderer, camera, world)
-future.wait()
-print(future.is_ready())
-
-for frame in range(10):
-    framebuffer.render_frame(renderer, camera, world)
+for frame in range(8):
+    future = framebuffer.render_frame(renderer, camera, world)
+    future.wait()
+    print('[%d] %.6f' % (frame, framebuffer.get_variance()))
+    
+res = framebuffer.pick(renderer, camera, world, (0.5, 0.5))
+if res.has_hit:
+    print('pick world pos', res.world_position)
+    print('pick instance', res.instance)
+    print('pick model', res.model)
+    print('pick prim ID', res.prim_id)    
+    assert res.instance.same_handle(instance)
+    assert res.model.same_handle(gmodel)
 
 colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
 print(colors.shape)
-#print(colors)
 
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
-
-#depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H), format)
-#print(depth.shape)
-#print(numpy.min(depth), numpy.max(depth))
-#
-#img = Image.frombuffer('L', (W,H), depth, 'raw', 'L', 0, 1)
-#img.save('depth.tif')

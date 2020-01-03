@@ -10,15 +10,14 @@ below.
 Note that this code is targeted at the 2.0.x branch of OSPRay.
 
 Missing features and/or limitations:
-- Not all `Device` methods are available
-- Currently no way to get variance value of a `FrameBuffer`, plus 
-  no support for picking
-- Not all mathematical operations on `affine3f` are supported. Affine values of other sizes and data types are not included.
 - Missing object types: `ImageOperation`
+- Not all mathematical operations on `affine3f` are supported. Affine values of other sizes and data types are not included.
+- Not all `Device` methods are available
 
 These bindings started just to try out [pybind11](https://github.com/pybind/pybind11),
 but they are pretty useful in their current state, as Pybind11 is an amazing little
-library (inspired by the just-as-great Boost.Python).
+library (inspired by the just-as-great Boost.Python) that makes wrapping
+C++ very easy.
 
 ## Example (after ospTutorial.cpp)
 
@@ -89,6 +88,8 @@ world = ospray.World()
 world.set_param('instance', [instance])
 
 light = ospray.Light('ambient')
+light.set_param('color', (1.0, 1, 1))
+light.set_param('intensity', 1.0)
 light.commit()
 
 world.set_param('light', [light])
@@ -105,13 +106,22 @@ channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_
 framebuffer = ospray.FrameBuffer((W,H), format, channels)
 framebuffer.clear()
 
-future = framebuffer.render_frame(renderer, camera, world)
-future.wait()
-
-for frame in range(10):
-    framebuffer.render_frame(renderer, camera, world)
+for frame in range(8):
+    future = framebuffer.render_frame(renderer, camera, world)
+    future.wait()
+    print('[%d] %.6f' % (frame, framebuffer.get_variance()))
+    
+res = framebuffer.pick(renderer, camera, world, (0.5, 0.5))
+if res.has_hit:
+    print('pick world pos', res.world_position)
+    print('pick instance', res.instance)
+    print('pick model', res.model)
+    print('pick prim ID', res.prim_id)    
+    assert res.instance.same_handle(instance)
+    assert res.model.same_handle(gmodel)
 
 colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
+print(colors.shape)
 
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)

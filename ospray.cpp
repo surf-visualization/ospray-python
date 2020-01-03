@@ -576,6 +576,22 @@ get_bounds(T &self)
     );
 }
 
+/*
+template<typename T>
+py::tuple
+get_handle(T &self)
+{
+    return self.handle();
+}
+*/
+
+template<typename T>
+bool
+same_handle(T& self, const T& other)
+{
+    return self.handle() == other.handle();
+}
+
 template<typename T>
 void
 declare_managedobject(py::module& m, const char *name)
@@ -598,6 +614,14 @@ declare_managedobject(py::module& m, const char *name)
         .def("set_param", &set_param_volumetric_model<T>)        
         .def("commit", &T::commit)
         .def("get_bounds", &get_bounds<T>)
+        //.def("handle", &get_handle<T>)      // XXX no viable conversion 
+        .def("same_handle", &same_handle<T>)
+        .def("__repr__", 
+            [name](const T& self) {
+                std::stringstream stream;
+                stream << std::hex << (size_t)(self.handle());
+                return "<ospray." + std::string(name).substr(7) + " referencing 0x" + stream.str() + ">";
+            })
     ;
 }
 
@@ -679,20 +703,35 @@ PYBIND11_MODULE(ospray, m)
             }))
     ;
             
+    py::class_<ospray::cpp::PickResult>(m, "PickResult")
+        .def_readonly("has_hit", &ospray::cpp::PickResult::hasHit)
+        .def_readonly("world_position", &ospray::cpp::PickResult::worldPosition)    
+        .def_property_readonly("instance", 
+            [](const ospray::cpp::PickResult& self) {
+                return ospray::cpp::Instance(self.instance);
+            })
+        .def_property_readonly("model", 
+            [](const ospray::cpp::PickResult& self) {
+                return ospray::cpp::GeometricModel(self.model);
+            })                        
+        .def_readonly("prim_id", &ospray::cpp::PickResult::primID)   
+    ;
+            
     py::class_<ospray::cpp::FrameBuffer, ManagedFrameBuffer>(m, "FrameBuffer")
         .def(py::init(
-            [](py::tuple& imgsize, OSPFrameBufferFormat format, int channels) {
+            [](py::tuple& imgsize, OSPFrameBufferFormat format=OSP_FB_SRGBA, int channels=OSP_FB_COLOR) {
                 return framebuffer_create(imgsize, format, channels);
-            })//,
-            //py::arg("format")=OSP_FB_SRGBA, py::arg("channels")=OSP_FB_COLOR)
+            }),
+            py::arg(), py::arg("format")=OSP_FB_SRGBA, py::arg("channels")=OSP_FB_COLOR
             )
         .def("clear", &ospray::cpp::FrameBuffer::clear)
-        //.def("get_variance", &ospray::cpp::FrameBuffer::getVariance)  // XXX doesn't exist
-        .def("get", &framebuffer_get, py::arg(), py::arg(), py::arg("format")=OSP_FB_NONE)
-        //.def("map", &ospray::cpp::FrameBuffer::map)
+        .def("get_variance", [](const ospray::cpp::FrameBuffer& self) {
+                return ospGetVariance(self.handle());
+            })
+        .def("get", &framebuffer_get, py::arg(), py::arg(), py::arg("format")=OSP_FB_NONE)        
+        .def("pick", &ospray::cpp::FrameBuffer::pick)
         .def("render_frame", &ospray::cpp::FrameBuffer::renderFrame)
         .def("reset_accumulation", &ospray::cpp::FrameBuffer::resetAccumulation)
-        //.def("unmap", &ospray::cpp::FrameBuffer::unmap)
     ;
        
     py::class_<ospray::cpp::Future, ManagedFuture>(m, "Future")
