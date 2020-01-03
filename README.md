@@ -131,14 +131,14 @@ img.save('colors.png')
 
 ## Conventions 
 
-- One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`.
+- One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`
 - Python-style method naming, so `set_param()` in Python for `setParam()` in C++
-- NumPy arrays for passing larger arrays of numbers, tuples for small single-dimensional
-  values such as `vec3f`'s.
+- NumPy arrays for passing larger arrays of numbers, Python tuples for small 
+  single vector values such as `vec3f`'s
 - Framebuffer `map()`/`unmap()` is not wrapped, but instead a method `get(channel, imgsize, format)`
   is available that directly provides the requested framebuffer channel as
   a NumPy array. Note that the pixel order is the same as what `FrameBuffer.map()`
-  returns: the first pixel returned is at the lower left pixel of the image.
+  returns: the first pixel returned is at the lower-left of the image.
 
 ## Data type mapping
 
@@ -161,26 +161,28 @@ are automatically converted to OSPRay types:
   value is produced.
   
 - A NumPy array is converted to a `Data` array using `data_constructor()`, so
-  you can pass Numpy arrays directly to `set_param()`. However, for parameters
-  that expect vector values an explicit conversion using `data_constructor_vec()` 
+  you can pass Numpy arrays directly to `set_param()` without having to call
+  `data_constructor()` yourself. However, for parameters that expect vector 
+  values (i.e. `vec<n><t>`) an explicit conversion using `data_constructor_vec()` 
   is needed.
   
 - Lists of OSPRay objects are turned into a `Data` object. The list items
   must all have the same type and are currently limited to GeometricModel, 
-  Instance, Material and VolumetricModel. 
+  ImageOperation, Instance, Material and VolumetricModel. 
 
-- Passing regular lists of Python numbers is not supported. Use NumPy 
+- Passing regular Python lists of numbers is not supported. Use NumPy 
   arrays instead.
 
-- Also note that OSPRay currently does not support all integer
-  types for `Data` objects (e.g. not `int8`), nor all combinations
-  of vector length and data type (e.g. not `vec2d`).
+- OSPRay currently does not support all integer types for `Data` objects 
+  (e.g. not `int8`), nor all combinations of vector length and data type 
+  (e.g. not `vec2d`).
 
 Both data constructor functions take a second argument `is_shared` defaulting
 to `False` that determines if the data in the numpy array passed can simply 
 be referenced instead of copied. In case `is_shared` is `True` you need to 
 make sure the numpy array stays alive by referencing it somewhere in your
-program.
+program, as the data in the numpy array will be used by the `Data` object
+directly.
 
 Examples:
 
