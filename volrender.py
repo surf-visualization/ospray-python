@@ -20,6 +20,12 @@ try:
 except ImportError:
     have_h5py = False
 
+try:
+    import vtk
+    have_vtk = True
+except ImportError:
+    have_vtk = False
+
 # Enable logging output
 
 def error_callback(error, details):
@@ -109,6 +115,8 @@ volfile = args[0]
 
 # Read file
 
+extent = numpy.zeros((3,2), 'float32')
+
 ext = os.path.splitext(volfile)[-1]
 
 if ext == '.raw':
@@ -116,6 +124,8 @@ if ext == '.raw':
     data = numpy.fromfile(volfile, dtype=numpy.uint8)    
     data = data.reshape(dimensions)
     voxel_type = ospray.OSP_UCHAR
+    
+    extent[:,1] = dimensions * grid_spacing   
     
 elif ext in ['.h5', '.hdf5']:
     assert have_h5py and 'h5py module could not be loaded!'
@@ -144,10 +154,54 @@ elif ext in ['.h5', '.hdf5']:
         'float64': ospray.OSP_DOUBLE,
     }[dtype]
     
-else:
-    raise ValueError('Unknown file extension "%s"' % ext)
+    extent[:,1] = dimensions * grid_spacing   
     
-extent = dimensions * grid_spacing    
+elif ext in ['.vtk', '.vti']:
+    assert have_vtk and 'vtk module could not be loaded!'
+    from vtk.numpy_interface import dataset_adapter
+    
+    if ext == '.vtk':    
+        dr = vtk.vtkDataSetReader()
+        dr.SetFileName(volfile)
+        dr.Update()
+        sp = dr.GetStructuredPointsOutput()
+        
+    else:
+        dr = vtk.vtkXMLImageDataReader()
+        dr.SetFileName(volfile)
+        dr.Update()
+        sp = dr.GetOutput()
+        
+    assert sp is not None
+    print(sp)
+    
+    dimensions = sp.GetDimensions()
+    extent = numpy.array(sp.GetExtent(), 'float32').reshape((3,2)).swapaxes(0,1)
+    grid_spacing = numpy.array(sp.GetSpacing(), 'float32')
+    
+    scalar_type = sp.GetScalarTypeAsString()
+        
+    voxel_type = {
+        #'int8': ospray.OSP_CHAR,
+        'unsigned char': ospray.OSP_UCHAR,
+        #'int16': ospray.OSP_SHORT,
+        #'uint16': ospray.OSP_USHORT,
+        'float': ospray.OSP_FLOAT,
+        'double': ospray.OSP_DOUBLE,
+    }[scalar_type]
+    
+    volume_do = dataset_adapter.WrapDataObject(sp)
+    assert len(volume_do.PointData.keys()) > 0
+    scalar_name = volume_do.PointData.keys()[0]
+    print('Point data', scalar_name)
+    
+    data = volume_do.PointData[scalar_name]
+    assert len(data.shape) == 1
+        
+    value_range = tuple(map(float, (numpy.min(data), numpy.max(data))))
+    
+else:
+    raise ValueError('Unknown file extension "%s"' % ext)    
 
 print('volume data', data.shape, data.dtype)
 print('dimensions', dimensions)
@@ -328,8 +382,8 @@ print('World center', center)
 #cam_view = (0.0, -1.0, 0.0)
 #cam_up = (0.0, 0.0, 1.0)
 
-center = 0.5*extent
-cam_pos = numpy.array([center[0], center[1]-extent[1], 0.5*max(extent)], dtype=numpy.float32)
+center = 0.5*(extent[0] + extent[1])
+cam_pos = numpy.array([center[0], center[1]-extent[1,1], 0.5*max(extent[1])], dtype=numpy.float32)
 cam_view = center - cam_pos
 cam_up = numpy.array([0, 0, 1], dtype=numpy.float32)
 
