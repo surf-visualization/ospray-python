@@ -10,14 +10,13 @@ below.
 Note that this code is targeted at the 2.0.x branch of OSPRay.
 
 Missing features and/or limitations:
-- Missing object types: `ImageOperation`
 - Not all mathematical operations on `affine3f` are supported. Affine values of other sizes and data types are not included.
 - Not all `Device` methods are available
 - No way to specify `Data` strides
 - No subdivision surface edge boundary enums (and probably some other enums as well)
 
 These bindings started just to try out [pybind11](https://github.com/pybind/pybind11),
-but they are pretty useful in their current state, as Pybind11 is an amazing little
+but they have quickly become pretty useful, as Pybind11 is an amazing little
 library (inspired by the just-as-great Boost.Python) that makes wrapping
 C++ very easy.
 

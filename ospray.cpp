@@ -15,6 +15,7 @@ typedef ospray::cpp::ManagedObject<OSPFuture, OSP_FUTURE>                   Mana
 typedef ospray::cpp::ManagedObject<OSPGeometricModel, OSP_GEOMETRIC_MODEL>  ManagedGeometricModel;
 typedef ospray::cpp::ManagedObject<OSPGeometry, OSP_GEOMETRY>               ManagedGeometry;
 typedef ospray::cpp::ManagedObject<OSPGroup, OSP_GROUP>                     ManagedGroup;
+typedef ospray::cpp::ManagedObject<OSPImageOperation, OSP_IMAGE_OPERATION>  ManagedImageOperation;
 typedef ospray::cpp::ManagedObject<OSPInstance, OSP_INSTANCE>               ManagedInstance;
 typedef ospray::cpp::ManagedObject<OSPLight, OSP_LIGHT>                     ManagedLight;
 typedef ospray::cpp::ManagedObject<OSPMaterial, OSP_MATERIAL>               ManagedMaterial;
@@ -429,6 +430,8 @@ set_param_list(T &self, const std::string &name, const py::list &values)
     
     if (listcls == "GeometricModel")
         self.setParam(name, build_data_from_list<ospray::cpp::GeometricModel>(listcls, values));
+    else if (listcls == "ImageOperation")
+        self.setParam(name, build_data_from_list<ospray::cpp::ImageOperation>(listcls, values));
     else if (listcls == "Instance")
         self.setParam(name, build_data_from_list<ospray::cpp::Instance>(listcls, values));
     else if (listcls == "Light")
@@ -666,6 +669,7 @@ PYBIND11_MODULE(ospray, m)
     declare_managedobject<ManagedGeometricModel>(m, "ManagedGeometricModel");
     declare_managedobject<ManagedGeometry>(m, "ManagedGeometry");
     declare_managedobject<ManagedGroup>(m, "ManagedGroup");
+    declare_managedobject<ManagedImageOperation>(m, "ManagedImageOperation");
     declare_managedobject<ManagedInstance>(m, "ManagedInstance");
     declare_managedobject<ManagedLight>(m, "ManagedLight");
     declare_managedobject<ManagedMaterial>(m, "ManagedMaterial");
@@ -708,6 +712,7 @@ PYBIND11_MODULE(ospray, m)
     py::class_<ospray::cpp::Data, ManagedData>(m, "Data")
         .def(py::init<const ospray::cpp::GeometricModel &>())
         .def(py::init<const ospray::cpp::Geometry &>())
+        .def(py::init<const ospray::cpp::ImageOperation &>())
         .def(py::init<const ospray::cpp::Instance &>())
         .def(py::init<const ospray::cpp::Light &>())
         .def(py::init<const ospray::cpp::VolumetricModel &>())
@@ -766,6 +771,10 @@ PYBIND11_MODULE(ospray, m)
     
     py::class_<ospray::cpp::Group, ManagedGroup>(m, "Group")
         .def(py::init<>())
+    ;
+    
+    py::class_<ospray::cpp::ImageOperation, ManagedImageOperation>(m, "ImageOperation")
+        .def(py::init<const std::string &>())
     ;
             
     py::class_<ospray::cpp::Instance, ManagedInstance>(m, "Instance")
