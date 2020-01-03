@@ -197,7 +197,7 @@ renderer.set_param('bgColor', 1.0)
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA
-channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_FB_DEPTH) | int(ospray.OSP_FB_VARIANCE)
+channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_FB_DEPTH) | int(ospray.OSP_FB_VARIANCE) | int(ospray.OSP_FB_NORMAL) | int(ospray.OSP_FB_ALBEDO)
 
 framebuffer = ospray.FrameBuffer((W,H), format, channels)
 framebuffer.clear()
@@ -212,15 +212,35 @@ for frame in range(10):
     
 colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
 print(colors.shape)
-#print(colors)
-
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
 
-#depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H), format)
-#print(depth.shape)
-#print(numpy.min(depth), numpy.max(depth))
-#
-#img = Image.frombuffer('L', (W,H), depth, 'raw', 'L', 0, 1)
-#img.save('depth.tif')
+depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H))
+print(depth.shape)
+print(numpy.min(depth), numpy.max(depth))
+depth[depth == numpy.inf] = 1000.0
+img = Image.frombuffer('F', (W,H), depth, 'raw', 'F', 0, 1)
+img = img.transpose(Image.FLIP_TOP_BOTTOM)
+img.save('depth.tif')
+
+# XXX not working yet
+#normal = framebuffer.get(ospray.OSP_FB_NORMAL, (W,H))
+#print(normal.shape)
+#print(numpy.min(normal), numpy.max(normal))
+#normal = ((0.5 + 0.5*normal)*255).astype(numpy.uint8)
+#img = Image.frombuffer('RGB', (W,H), depth, 'raw', 'RGB', 0, 1)
+#img = img.transpose(Image.FLIP_TOP_BOTTOM)
+#img.save('normal.png')
+
+# XXX not working yet
+#albedo = framebuffer.get(ospray.OSP_FB_ALBEDO, (W,H))
+#print(albedo.shape)
+#print(numpy.min(albedo), numpy.max(albedo))
+#albedo = ((0.5 + 0.5*albedo)*255).astype(numpy.uint8)
+#img = Image.frombuffer('RGB', (W,H), depth, 'raw', 'RGB', 0, 1)
+#img = img.transpose(Image.FLIP_TOP_BOTTOM)
+#img.save('albedo.png')
+
+# Should raise exception as OSP_FB_ACCUM cannot be mapped
+#framebuffer.get(ospray.OSP_FB_ACCUM, (W,H))

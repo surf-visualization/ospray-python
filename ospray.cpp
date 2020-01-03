@@ -524,14 +524,20 @@ framebuffer_create(py::tuple& imgsize, OSPFrameBufferFormat format, int channels
 }
 
 py::array
-framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, py::tuple& imgsize, OSPFrameBufferFormat format)
+framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, py::tuple& imgsize, OSPFrameBufferFormat format=OSP_FB_NONE)
 {
+    if (channel == OSP_FB_ACCUM || channel == OSP_FB_VARIANCE)
+        throw std::invalid_argument("requested framebuffer channel cannot be mapped");
+    
     int w = py::cast<int>(imgsize[0]);
     int h = py::cast<int>(imgsize[1]);
     py::array res;
     void *fb;
     
     fb = self.map(channel);
+    
+    if (fb == nullptr)
+        throw std::invalid_argument("requested framebuffer channel is not available");
     
     if (channel == OSP_FB_COLOR)
     {
@@ -543,6 +549,14 @@ framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, p
     else if (channel == OSP_FB_DEPTH)
     {
         res = py::array_t<float>({w,h}, (float*)fb);
+    }
+    else if (channel == OSP_FB_NORMAL)
+    {
+        res = py::array_t<float>({w,h,3}, (float*)fb);
+    }
+    else if (channel == OSP_FB_ALBEDO)
+    {
+        res = py::array_t<float>({w,h,3}, (float*)fb);
     }
     
     self.unmap(fb);
@@ -674,7 +688,7 @@ PYBIND11_MODULE(ospray, m)
             )
         .def("clear", &ospray::cpp::FrameBuffer::clear)
         //.def("get_variance", &ospray::cpp::FrameBuffer::getVariance)  // XXX doesn't exist
-        .def("get", &framebuffer_get)
+        .def("get", &framebuffer_get, py::arg(), py::arg(), py::arg("format")=OSP_FB_NONE)
         //.def("map", &ospray::cpp::FrameBuffer::map)
         .def("render_frame", &ospray::cpp::FrameBuffer::renderFrame)
         .def("reset_accumulation", &ospray::cpp::FrameBuffer::resetAccumulation)

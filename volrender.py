@@ -46,6 +46,7 @@ def usage():
     print(' -b r,g,b                Background color')
     print(' -d xdim,ydim,zdim       .raw dimensions')
     print(' -D dataset_name         HDF5 dataset name')
+    print(' -f axis,minidx,maxidx,value     Fill part of the volume with a specific value')
     print(' -i isovalue')
     print(' -I width,height         Image resolution')
     print(' -p                      Use pathtracer')
@@ -60,11 +61,13 @@ dataset_name = None
 isovalue = None
 grid_spacing = numpy.ones(3, dtype=numpy.float32)
 samples = 4
+set_value = None
 voxel_type = None
 value_range = None
 
+
 try:
-    optlist, args = getopt.getopt(argv[1:], 'b:d:D:i:I:ps:S:v:')
+    optlist, args = getopt.getopt(argv[1:], 'b:d:D:f:i:I:ps:S:v:')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -77,8 +80,12 @@ for o, a in optlist:
     elif o == '-d':
         dimensions = tuple(map(int, a.split(',')))
         assert len(dimensions) == 3
-    elif o == '-D':
+    elif o == '-D':        
         dataset_name = a
+    elif o == '-f':
+        pp = a.split(',')
+        assert len(pp) == 4
+        set_value = (int(pp[0]), int(pp[1]), int(pp[2]), float(pp[3]))        
     elif o == '-i':
         isovalue = float(a)
     elif o == '-I':
@@ -144,9 +151,17 @@ print('value range', value_range)
 print('spacing', grid_spacing)
 print('extent', extent)
 
-print('histo', numpy.histogram(data))
-
 assert value_range is not None and 'Set value range with -v min,max'
+
+if set_value is not None:
+    axis, minidx, maxidx, value = set_value
+    assert axis in [0,1,2]
+    if axis == 0:
+        data[minidx:maxidx+1] = value
+    elif axis == 1:
+        data[:,minidx:maxidx+1] = value
+    else:
+        data[:,:,minidx:maxidx+1] = value
 
 # Keep a reference to the numpy array around, as it will get
 # deallocated otherwise
@@ -175,15 +190,15 @@ else:
     tfopacities = numpy.zeros(T, dtype=numpy.float32)
 
     positions = numpy.array([
-        0, 0.224, 0.312, 0.362, 1   
+        0, 0.318, 0.462, 0.546, 1   
     ], dtype=numpy.float32)
 
     colors = numpy.array([
         [0, 0, 1],
-        [0, 0, 1],
-        [0, 0, 0],
-        [1, 1, 1],
-        [1, 1, 1],
+        [0, 1, 0],
+        [0.013, 0, 0.5],
+        [0.229, 0, 0.5],
+        [0.229, 0, 0.5],
     ], dtype=numpy.float32)
 
     opacities = numpy.array([
@@ -347,7 +362,7 @@ renderer.set_param('bgColor', bgcolor)
 #    renderer.set_param('bgColor', (0.0, 0.0, 0.0))
 #    #renderer.set_param('backplate', backplate)
 if RENDERER == 'scivis':
-    renderer.set_param('volumeSamplingRate', 4.0)
+    renderer.set_param('volumeSamplingRate', 1.0)
 renderer.commit()
 
 # Framebuffer
@@ -369,18 +384,17 @@ for frame in range(samples):
 sys.stdout.write('\n')
     
 colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
-print(colors.shape)
-#print(colors)
-
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
 
+# XXX seems depths aren't stored on volume hits
 #depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H), format)
 #print(depth.shape)
 #print(numpy.min(depth), numpy.max(depth))
-#
-#img = Image.frombuffer('L', (W,H), depth, 'raw', 'L', 0, 1)
+#depth[depth == numpy.inf] = 1000.0
+#img = Image.frombuffer('F', (W,H), depth, 'raw', 'F', 0, 1)
+#img = img.transpose(Image.FLIP_TOP_BOTTOM)
 #img.save('depth.tif')
 
 t1 = time.time()
