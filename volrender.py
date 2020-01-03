@@ -132,7 +132,7 @@ if ext == '.raw':
     if voxel_type is None:
         voxel_type = ospray.OSP_UCHAR
     
-    extent[1,:] = dimensions * grid_spacing   
+    extent[1] = dimensions * grid_spacing   
     
 elif ext in ['.h5', '.hdf5']:
     assert have_h5py and 'h5py module could not be loaded!'
@@ -161,7 +161,7 @@ elif ext in ['.h5', '.hdf5']:
         'float64': ospray.OSP_DOUBLE,
     }[dtype]
     
-    extent[:,1] = dimensions * grid_spacing   
+    extent[1] = dimensions * grid_spacing   
     
 elif ext in ['.vtk', '.vti']:
     assert have_vtk and 'vtk module could not be loaded!'
