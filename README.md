@@ -168,11 +168,12 @@ are automatically converted to OSPRay types:
   must all have the same type and are currently limited to GeometricModel, 
   Instance, Material and VolumetricModel. 
 
-Passing regular lists of Python numbers is not supported. Use NumPy arrays for those cases.
+- Passing regular lists of Python numbers is not supported. Use NumPy 
+  arrays instead.
 
-Also note that OSPRay currently does not support all integer
-types for `Data` objects (e.g. not `int8`), nor all combinations
-of vector length and data type (e.g. not `vec2d`).
+- Also note that OSPRay currently does not support all integer
+  types for `Data` objects (e.g. not `int8`), nor all combinations
+  of vector length and data type (e.g. not `vec2d`).
 
 Both data constructor functions take a second argument `is_shared` defaulting
 to `False` that determines if the data in the numpy array passed can simply 
