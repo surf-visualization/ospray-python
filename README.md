@@ -10,7 +10,6 @@ below.
 Note that this code is targeted at the 2.0.x branch of OSPRay.
 
 Missing features and/or limitations:
-- Shared `Data` objects (all data is currently copied)
 - Not all `Device` methods are available
 - Currently no way to get variance value of a `FrameBuffer`, plus 
   no support for picking
@@ -164,6 +163,12 @@ Passing regular lists of Python numbers is not supported. Use NumPy arrays for t
 Also note that OSPRay currently does not support all integer
 types for `Data` objects (e.g. not `int8`), nor all combinations
 of vector length and data type (e.g. not `vec2d`).
+
+Both data constructor functions take a second argument `is_shared` defaulting
+to `False` that determines if the data in the numpy array passed can simply 
+be referenced instead of copied. In case `is_shared` is `True` you need to 
+make sure the numpy array stays alive by referencing it somewhere in your
+program.
 
 Examples:
 

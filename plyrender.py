@@ -54,6 +54,7 @@ minn, maxn = numpy.min(loop_length), numpy.max(loop_length)
 print('Polygon size range: [%d, %d]' % (minn, maxn))
 
 if minn == maxn:
+    assert minn in [3,4]
     mesh_type = 'pure-triangle' if minn == 3 else 'pure-quad'
 elif minn == 3 and maxn == 4:
     mesh_type = 'mixed-tris-and-quads'
@@ -71,6 +72,7 @@ indices = plymesh['faces']
 
 colors = None
 if 'vertex_colors' in plymesh:
+    print('Have vertex colors')
     colors = plymesh['vertex_colors'].reshape((-1, 3))
     # Add opacity
     n = colors.shape[0]

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-import sys
+import sys, os
+scriptdir = os.path.split(__file__)[0]
+sys.path.insert(0, os.path.join(scriptdir, '..'))
+
 import numpy
 from PIL import Image
 import ospray
@@ -7,9 +10,10 @@ import ospray
 W = 1024
 H = 768
 
-cam_pos = (0.0, 0.0, 3.0)
+cam_pos = (1.0, 1.0, 3.0)
 cam_up = (0.0, 1.0, 0.0)
-cam_view = (0.0, 0.0, -1.0)
+look_at = numpy.array([0, 0, 0], numpy.float32)
+cam_view = tuple((look_at - numpy.array(cam_pos, numpy.float32)).tolist())
 
 vertex = numpy.array([
    [-1.0, -1.0, 0.0],
