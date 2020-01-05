@@ -426,7 +426,7 @@ set_param_list(T &self, const std::string &name, const py::list &values)
 {
     if (values.size() == 0)
     {
-        printf("WARNING: not setting empty list in set_param_list()\n");
+        printf("WARNING: not setting empty list in set_param_list(..., '%s', ...)\n", name.c_str());
         return;
     }
     
