@@ -4,7 +4,7 @@ These are Python 3.x bindings for [OSPRay](https://www.ospray.org).
 More specifically, they wrap the OSPRay C++ API (plus a few C API routines).
 Most OSPRay objects can be created from Python. Due to the general
 method of setting object parameters in OSPRay these are supported
-on all objects as well. But see the notes of data type mapping
+on all objects as well. But see the notes on data type mapping
 below.
 
 Note that this code is targeted at the 2.0.x branch of OSPRay.
@@ -63,10 +63,10 @@ are automatically converted to OSPRay types:
   (e.g. not `vec2d`).
 
 Both data constructor functions take a second argument `is_shared` defaulting
-to `False` that determines if the data in the numpy array passed can simply 
+to `False` that determines if the data in the NumPy array passed can simply 
 be referenced instead of copied. In case `is_shared` is `True` you need to 
-make sure the numpy array stays alive by referencing it somewhere in your
-program, as the data in the numpy array will be used by the `Data` object
+make sure the NumPy array stays alive by referencing it somewhere in your
+program, as the data in the NumPy array will be used by the `Data` object
 directly.
 
 Examples:
@@ -98,11 +98,12 @@ world.set_param('light', [light1,light2])
 # Missing features and/or limitations
 
 - Not all mathematical operations on `affine3f` are supported. Affine values of other sizes and data types are not included.
-- Not all `Device` methods are available
 - No way to specify `Data` strides
 - No subdivision surface edge boundary enums (and probably some other enums as well)
+- Not all `Device` methods are available
+- Could throw more exceptions in cases where currently a warning/error is printed
 
-## Example (after ospTutorial.cpp)
+# Example (after ospTutorial.cpp)
 
 ```
 #!/usr/bin/env python
