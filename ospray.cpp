@@ -592,16 +592,6 @@ declare_managedobject(py::module &m, const char *name)
 
 // FrameBuffer
 
-ospray::cpp::FrameBuffer
-framebuffer_create(py::tuple &imgsize, OSPFrameBufferFormat format, int channels)
-{
-    int w = py::cast<int>(imgsize[0]);
-    int h = py::cast<int>(imgsize[1]);
-    ospcommon::math::vec2i isize { w, h };
-    
-    return ospray::cpp::FrameBuffer(isize, format, channels);
-}
-
 py::array
 framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, py::tuple &imgsize, OSPFrameBufferFormat format=OSP_FB_NONE)
 {
@@ -743,12 +733,8 @@ PYBIND11_MODULE(ospray, m)
     ;
             
     py::class_<ospray::cpp::FrameBuffer, ManagedFrameBuffer>(m, "FrameBuffer")
-        .def(py::init(
-            [](py::tuple& imgsize, OSPFrameBufferFormat format=OSP_FB_SRGBA, int channels=OSP_FB_COLOR) {
-                return framebuffer_create(imgsize, format, channels);
-            }),
-            py::arg(), py::arg("format")=OSP_FB_SRGBA, py::arg("channels")=OSP_FB_COLOR
-            )
+        .def(py::init<const ospcommon::math::vec2i&, OSPFrameBufferFormat, int>(),
+            py::arg(), py::arg("format")=OSP_FB_SRGBA, py::arg("channels")=OSP_FB_COLOR)
         .def("clear", &ospray::cpp::FrameBuffer::clear)
         .def("get_variance", [](const ospray::cpp::FrameBuffer& self) {
                 return ospGetVariance(self.handle());
