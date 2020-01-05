@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-import sys, getopt
+import sys, getopt, os
 import numpy
 from PIL import Image
 import ospray
-# Needs https://github.com/paulmelis/blender-ply-import
-from readply import readply
+from loaders import read_ply, read_obj
 
 W = 1024
 H = 768
@@ -42,85 +41,48 @@ for o, a in optlist:
     elif o == '-s':
         force_subdivision_mesh = True
 
-plyfile = args[0]
+# Set up material
 
-plymesh = readply(plyfile, vertex_values_per_loop=False)
+#material = ospray.Material('pathtracer', 'Metal')
+#material.set_param('eta', (0.07, 0.37, 1.5))
+#material.set_param('k', (3.7, 2.3, 1.7))
+#material.set_param('roughness', 0.5)
+#material.commit()
 
-print('%d vertices, %d faces' % (plymesh['num_vertices'], plymesh['num_faces']))
+# Broken?
+material = ospray.Material('pathtracer', 'OBJMaterial')
+#material.set_param('Kd', (0, 0, 1))
+#material.set_param('Ns', 1.0)
+material.commit()
 
-loop_start = plymesh['loop_start']
-loop_length = plymesh['loop_length']
+# Process file
 
-minn, maxn = numpy.min(loop_length), numpy.max(loop_length)
-print('Polygon size range: [%d, %d]' % (minn, maxn))
+fname = args[0]
+ext = os.path.splitext(fname)[-1]
 
-if minn == maxn:
-    assert minn in [3,4]
-    mesh_type = 'pure-triangle' if minn == 3 else 'pure-quad'
-elif minn == 3 and maxn == 4:
-    mesh_type = 'mixed-tris-and-quads'
+if ext == '.ply':
+    meshes = read_ply(fname, force_subdivision_mesh)
+elif ext in ['.obj', '.OBJ']:
+    meshes = read_obj(fname, force_subdivision_mesh)
 else:
-    mesh_type = 'mixed-polygons'
-    
-print('Mesh type: %s' % mesh_type)
-if force_subdivision_mesh:
-    print('Forcing subdivision mesh')
-    
-vertices = plymesh['vertices']
-vertices = vertices.reshape((-1, 3))
+    raise ValueError('Unknown extension %s' % ext)
 
-indices = plymesh['faces']
-
-colors = None
-if 'vertex_colors' in plymesh:
-    print('Have vertex colors')
-    colors = plymesh['vertex_colors'].reshape((-1, 3))
-    # Add opacity
-    n = colors.shape[0]
-    alpha = numpy.ones((n,1), dtype=numpy.float32)
-    colors = numpy.hstack((colors, alpha))
-
-if mesh_type.startswith('pure-') and not force_subdivision_mesh:
-    mesh = ospray.Geometry('mesh')
-    indices = indices.reshape((-1, minn))
-    mesh.set_param('index', ospray.data_constructor_vec(indices))
-    # Get a OSPRAY STATUS: ospray::Mesh ignoring 'index' array with wrong element type (should be vec3ui)
-    # when passing a pure-quad index array
+gmodels = []
+for mesh in meshes:
     
-elif mesh_type == 'mixed-tris-and-quads' and not force_subdivision_mesh:
-    mesh = ospray.Geometry('mesh')
+    if force_subdivision_mesh:
+        mesh.set_param('level', subvision_level)
     
-    # Duplicate last index of triangles
-    new_indices = []
-    first = 0
-    for n in loop_length:
-        if n == 3:
-            new_indices.extend(indices[first:first+3])
-            new_indices.append(indices[first+2])
-        else:
-            new_indices.extend(indices[first:first+4])
-        first += n
-        
-    new_indices = numpy.array(new_indices, dtype=numpy.uint32).reshape((-1, 4))    
-    mesh.set_param('index', ospray.data_constructor_vec(new_indices))
-else:
-    # Use subdivision surface
-    mesh = ospray.Geometry('subdivision')
-    mesh.set_param('level', subvision_level)
-    mesh.set_param('index', ospray.data_constructor_vec(indices))
-    mesh.set_param('face', loop_length)
+    gmodel = ospray.GeometricModel(mesh)
+    gmodel.set_param('material', material)
+    gmodel.commit()
     
-mesh.set_param('vertex.position', ospray.data_constructor_vec(vertices))
-if colors is not None:
-    mesh.set_param('vertex.color', ospray.data_constructor_vec(colors))
-
-mesh.commit()
-
-gmodel = ospray.GeometricModel(mesh)
-gmodel.commit()
+    gmodels.append(gmodel)
+    
+print('Have %d meshes' % len(gmodels))
 
 group = ospray.Group()
-group.set_param('geometry', [gmodel])
+group.set_param('geometry', gmodels)
 group.commit()
 
 bound = group.get_bounds()
@@ -147,32 +109,20 @@ instance1 = ospray.Instance(group)
 instance1.set_param('xfm', ospray.affine3f.identity())
 instance1.commit()
 
-instance2 = ospray.Instance(group)
-instance2.set_param('xfm', ospray.affine3f.translate((1,0,0)))
-instance2.commit()
+instances = [instance1]
 
-instance3 = ospray.Instance(group)
-instance3.set_param('xfm', 
-    ospray.affine3f.translate((0,1,0)) * ospray.affine3f.rotate((0,0,1), 90)
-    )
-instance3.commit()
+if False:
+    instance2 = ospray.Instance(group)
+    instance2.set_param('xfm', ospray.affine3f.translate((1,0,0)))
+    instance2.commit()
 
-instances = [instance1, instance2, instance3]
+    instance3 = ospray.Instance(group)
+    instance3.set_param('xfm', 
+        ospray.affine3f.translate((0,1,0)) * ospray.affine3f.rotate((0,0,1), 90)
+        )
+    instance3.commit()
 
-#material = ospray.Material('pathtracer', 'Metal')
-#material.set_param('eta', (0.07, 0.37, 1.5))
-#material.set_param('k', (3.7, 2.3, 1.7))
-#material.set_param('roughness', 0.5)
-#material.commit()
-
-# Broken?
-material = ospray.Material('pathtracer', 'OBJMaterial')
-#material.set_param('Kd', (0, 0, 1))
-#material.set_param('Ns', 1.0)
-material.commit()
-
-gmodel.set_param('material', material)
-gmodel.commit()
+    instances = [instance1, instance2, instance3]
 
 world = ospray.World()
 world.set_param('instance', instances)
