@@ -95,6 +95,41 @@ camera.set_param('position', tuple(cam_pos.tolist()))
 world.set_param('light', [light1,light2])
 ```
 
+## Context manager for automatic object commit
+
+Most objects (except `Data` and `Device`) support using them as a
+context manager together with the `with` statement. On exit of the
+`with` block `commit()` is automatically called on the object. 
+
+So instead of
+
+```
+light = ospray.Light('ambient')
+light.set_param('color', (1.0, 1, 1))
+light.set_param('intensity', 1.0)
+# It's easy to forget the call to commit()
+light.commit()
+```
+
+you can write
+
+```
+light = ospray.Light('ambient')
+with light:
+    light.set_param('color', (1.0, 1, 1))
+    light.set_param('intensity', 1.0)
+    # commit() will be called automatically at this point
+```
+
+Or with the new [assignment expression](https://docs.python.org/3/whatsnew/3.8.html#assignment-expressions)
+introduced in Python 3.8 this can even be shortened to
+
+```
+with (light := ospray.Light('ambient')):
+    light.set_param('color', (1.0, 1, 1))
+    light.set_param('intensity', 1.0)
+```
+
 # Missing features and/or limitations
 
 - Not all mathematical operations on `affine3f` are supported. Affine values of other sizes and data types are not included.

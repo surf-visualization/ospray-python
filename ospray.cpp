@@ -586,6 +586,10 @@ declare_managedobject(py::module &m, const char *name)
                 stream << std::hex << (size_t)(self.handle());
                 return "<ospray." + std::string(name).substr(7) + " referencing 0x" + stream.str() + ">";
             })
+        .def("__enter__", [](const T& /*self*/) { /* no-op */ })
+        .def("__exit__", [](const T& self, py::object /*exc_type*/, py::object /*exc_value*/, py::object /*traceback*/) {
+                self.commit();
+            })
     ;
 }
 
