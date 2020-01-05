@@ -1,4 +1,4 @@
-# OSPY - Python bindings for OSPRay
+# ospray-python - Python bindings for OSPRay
 
 These are Python 3.x bindings for [OSPRay](https://www.ospray.org).
 More specifically, they wrap the OSPRay C++ API (plus a few C API routines).
@@ -9,16 +9,98 @@ below.
 
 Note that this code is targeted at the 2.0.x branch of OSPRay.
 
-Missing features and/or limitations:
-- Not all mathematical operations on `affine3f` are supported. Affine values of other sizes and data types are not included.
-- Not all `Device` methods are available
-- No way to specify `Data` strides
-- No subdivision surface edge boundary enums (and probably some other enums as well)
-
 These bindings started just to try out [pybind11](https://github.com/pybind/pybind11),
 but they have quickly become pretty useful, as Pybind11 is an amazing little
 library (inspired by the just-as-great Boost.Python) that makes wrapping
 C++ very easy.
+
+## Conventions 
+
+- One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`
+- Python-style method naming, so `set_param()` in Python for `setParam()` in C++
+- NumPy arrays for passing larger arrays of numbers, Python tuples for small 
+  single vector values such as `vec3f`'s
+- Framebuffer `map()`/`unmap()` is not wrapped, but instead a method `get(channel, imgsize, format)`
+  is available that directly provides the requested framebuffer channel as
+  a NumPy array. Note that the pixel order is the same as what `FrameBuffer.map()`
+  returns: the first pixel returned is at the lower-left of the image.
+
+## Data type mapping
+
+For passing arrays of numbers, such as vertex coordinates or lists of isosurface
+values, use NumPy arrays. These can be converted to a `Data` object using the 
+`data_constructor()` or `data_constructor_vec()` functions. The `data_constructor()`
+function directly converts the NumPy array to a `Data` array of the same dimensions
+and data type. 
+
+The `data_constructor_vec()` function can be used for generating `Data` arrays of 
+`ospcommon::math::vec<n><t>` values. The last dimension of the passed array must 
+be 2, 3 or 4. 
+
+When setting parameter values with `set_param()` certain Python values 
+are automatically converted to OSPRay types:
+
+- A 2/3/4-tuple of float or int is converted to a corresponding 
+  `ospcommon::math::vec<n>[i|f]` value. If there is at least one float
+  in the tuple it is converted to a `vec<n>f` value, otherwise a `vec<n>i`
+  value is produced.
+  
+- A NumPy array is converted to a `Data` array using `data_constructor()`, so
+  you can pass Numpy arrays directly to `set_param()` without having to call
+  `data_constructor()` yourself. However, for parameters that expect vector 
+  values (i.e. `vec<n><t>`) an explicit conversion using `data_constructor_vec()` 
+  is needed.
+  
+- Lists of OSPRay objects are turned into a `Data` object. The list items
+  must all have the same type and are currently limited to GeometricModel, 
+  ImageOperation, Instance, Material and VolumetricModel. 
+
+- Passing regular Python lists of numbers is not supported. Use NumPy 
+  arrays instead.
+
+- OSPRay currently does not support all integer types for `Data` objects 
+  (e.g. not `int8`), nor all combinations of vector length and data type 
+  (e.g. not `vec2d`).
+
+Both data constructor functions take a second argument `is_shared` defaulting
+to `False` that determines if the data in the numpy array passed can simply 
+be referenced instead of copied. In case `is_shared` is `True` you need to 
+make sure the numpy array stays alive by referencing it somewhere in your
+program, as the data in the numpy array will be used by the `Data` object
+directly.
+
+Examples:
+
+```
+# 3-tuple -> vec3f
+light1 = ospray.Light('ambient')
+light1.set_param('color', (1.0, 1, 1))
+
+# NumPy array to ospray::cpp::Data of vec3ui values
+index = numpy.array([
+    [0, 1, 2], [1, 2, 3]
+], dtype=numpy.uint32)
+mesh = ospray.Geometry('mesh')
+mesh.set_param('index', ospray.data_constructor_vec(index))
+
+camera = ospray.Camera('perspective')
+# Tuple of floats -> vec3f
+camera.set_param('up', (0.0, 0.0, 1.0))
+# NumPy array to ospcommon::math::vec3f isn't directly possible.
+# Use manual conversion to tuple, or set a tuple directly
+cam_pos = numpy.array([1, 2, 3.5], dtype=numpy.float32)
+camera.set_param('position', tuple(cam_pos.tolist()))
+
+# List of scene objects to ospray::cpp::Data
+world.set_param('light', [light1,light2])
+```
+
+# Missing features and/or limitations
+
+- Not all mathematical operations on `affine3f` are supported. Affine values of other sizes and data types are not included.
+- Not all `Device` methods are available
+- No way to specify `Data` strides
+- No subdivision surface edge boundary enums (and probably some other enums as well)
 
 ## Example (after ospTutorial.cpp)
 
@@ -127,85 +209,4 @@ print(colors.shape)
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
-```
-
-## Conventions 
-
-- One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`
-- Python-style method naming, so `set_param()` in Python for `setParam()` in C++
-- NumPy arrays for passing larger arrays of numbers, Python tuples for small 
-  single vector values such as `vec3f`'s
-- Framebuffer `map()`/`unmap()` is not wrapped, but instead a method `get(channel, imgsize, format)`
-  is available that directly provides the requested framebuffer channel as
-  a NumPy array. Note that the pixel order is the same as what `FrameBuffer.map()`
-  returns: the first pixel returned is at the lower-left of the image.
-
-## Data type mapping
-
-For passing arrays of numbers, such as vertex coordinates or lists of isosurface
-values, use NumPy arrays. These can be converted to a `Data` object using the 
-`data_constructor()` or `data_constructor_vec()` functions. The `data_constructor()`
-function directly converts the NumPy array to a `Data` array of the same dimensions
-and data type. 
-
-The `data_constructor_vec()` function can be used for generating `Data` arrays of 
-`ospcommon::math::vec<n><t>` values. The last dimension of the passed array must 
-be 2, 3 or 4. 
-
-When setting parameter values with `set_param()` certain Python values 
-are automatically converted to OSPRay types:
-
-- A 2/3/4-tuple of float or int is converted to a corresponding 
-  `ospcommon::math::vec<n>[i|f]` value. If there is at least one float
-  in the tuple it is converted to a `vec<n>f` value, otherwise a `vec<n>i`
-  value is produced.
-  
-- A NumPy array is converted to a `Data` array using `data_constructor()`, so
-  you can pass Numpy arrays directly to `set_param()` without having to call
-  `data_constructor()` yourself. However, for parameters that expect vector 
-  values (i.e. `vec<n><t>`) an explicit conversion using `data_constructor_vec()` 
-  is needed.
-  
-- Lists of OSPRay objects are turned into a `Data` object. The list items
-  must all have the same type and are currently limited to GeometricModel, 
-  ImageOperation, Instance, Material and VolumetricModel. 
-
-- Passing regular Python lists of numbers is not supported. Use NumPy 
-  arrays instead.
-
-- OSPRay currently does not support all integer types for `Data` objects 
-  (e.g. not `int8`), nor all combinations of vector length and data type 
-  (e.g. not `vec2d`).
-
-Both data constructor functions take a second argument `is_shared` defaulting
-to `False` that determines if the data in the numpy array passed can simply 
-be referenced instead of copied. In case `is_shared` is `True` you need to 
-make sure the numpy array stays alive by referencing it somewhere in your
-program, as the data in the numpy array will be used by the `Data` object
-directly.
-
-Examples:
-
-```
-# 3-tuple -> vec3f
-light1 = ospray.Light('ambient')
-light1.set_param('color', (1.0, 1, 1))
-
-# NumPy array to ospray::cpp::Data of vec3ui values
-index = numpy.array([
-    [0, 1, 2], [1, 2, 3]
-], dtype=numpy.uint32)
-mesh = ospray.Geometry('mesh')
-mesh.set_param('index', ospray.data_constructor_vec(index))
-
-camera = ospray.Camera('perspective')
-# Tuple of floats -> vec3f
-camera.set_param('up', (0.0, 0.0, 1.0))
-# NumPy array to ospcommon::math::vec3f isn't directly possible.
-# Use manual conversion to tuple, or set a tuple directly
-cam_pos = numpy.array([1, 2, 3.5], dtype=numpy.float32)
-camera.set_param('position', tuple(cam_pos.tolist()))
-
-# List of scene objects to ospray::cpp::Data
-world.set_param('light', [light1,light2])
 ```
