@@ -424,6 +424,12 @@ template<typename T>
 void
 set_param_list(T &self, const std::string &name, const py::list &values)
 {
+    if (values.size() == 0)
+    {
+        printf("WARNING: not setting empty list in set_param_list()\n");
+        return;
+    }
+    
     auto first = values[0];
     
     std::string listcls = first.get_type().attr("__name__").cast<std::string>();
