@@ -54,8 +54,19 @@ scene = ospray.testing.SceneBuilder(SCENE)
 scene.set_param('rendererType', RENDERER)
 scene.commit()
 
-world = scene.build_world()
-world.commit()
+if True:
+    world = scene.build_world()
+    world.commit()
+else:
+    group = scene.build_group()
+    group.commit()
+
+    instance = ospray.Instance(group)
+    instance.commit()
+
+    world = ospray.World()
+    world.set_param('instance', [instance])
+    world.commit()
 
 # Set up the rest
 
