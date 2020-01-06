@@ -65,6 +65,7 @@ def usage():
     print(' -v minval,maxval')
     print()
 
+anisotropy = 0.0
 bgcolor = (1.0, 1.0, 1.0)
 dimensions = None
 dataset_name = None
@@ -78,14 +79,16 @@ value_range = None
 
 
 try:
-    optlist, args = getopt.getopt(argv[1:], 'b:d:D:f:i:I:o:ps:S:t:v:')
+    optlist, args = getopt.getopt(argv[1:], 'a:b:d:D:f:i:I:o:ps:S:t:v:')
 except getopt.GetoptError as err:
     print(err)
     usage()
     sys.exit(2)
 
 for o, a in optlist:
-    if o == '-b':
+    if o == '-a':
+        anisotropy = float(a)
+    elif o == '-b':
         bgcolor = tuple(map(float, a.split(',')))
         assert len(bgcolor) == 3
     elif o == '-d':
@@ -313,7 +316,7 @@ transfer_function.commit()
 vmodel = ospray.VolumetricModel(volume)
 vmodel.set_param('transferFunction', transfer_function)
 #vmodel.set_param('densityScale', 0.1)
-#vmodel.set_param('anisotropy', 0.0)
+vmodel.set_param('anisotropy', anisotropy)
 vmodel.commit()
 
 # Isosurface rendered
