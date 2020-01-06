@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 import sys, getopt, os, time
+scriptdir = os.path.split(__file__)[0]
+sys.path.insert(0, os.path.join(scriptdir, '..'))
+
 import numpy
 from PIL import Image
 import ospray
