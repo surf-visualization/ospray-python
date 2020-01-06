@@ -1,3 +1,4 @@
+from struct import unpack
 import numpy
 import ospray
 
@@ -27,8 +28,47 @@ def determine_mesh_type(face_lengths):
         mesh_type = 'mixed-polygons'
         
     return mesh_type, minn, maxn
-        
     
+    
+def read_stl(fname, force_subdivision_mesh=False):
+    
+    with open(fname, 'rb') as f:
+        
+        header = f.read(80)
+        if header[:5] == b'solid':
+            raise ValueError("Can't read ASCII STL files")
+            
+        num_triangles = unpack('<I', f.read(4))[0]
+        print('%s: %d triangles' % (fname, num_triangles))
+        
+        normals = numpy.empty((num_triangles, 3), 'float32')
+        vertices = numpy.empty((num_triangles*3, 3), 'float32')
+        
+        for i in range(num_triangles):
+            
+            normals[i] = unpack('<fff', f.read(12))
+            vertices[3*i+0] = unpack('<fff', f.read(12))
+            vertices[3*i+1] = unpack('<fff', f.read(12))
+            vertices[3*i+2] = unpack('<fff', f.read(12))
+            f.read(2)
+            
+        indices = numpy.arange(num_triangles*3, dtype='uint32')
+        
+        if not force_subdivision_mesh:
+            mesh = ospray.Geometry('mesh')
+            mesh.set_param('vertex.position', ospray.data_constructor_vec(vertices))        
+            mesh.set_param('vertex.normal', ospray.data_constructor_vec(normals))        
+            mesh.set_param('index', ospray.data_constructor_vec(indices.reshape((-1, 3))))        
+        # XXX borked
+        #else:
+        #    mesh = ospray.Geometry('subdivision')
+        #    mesh.set_param('vertex.position', ospray.data_constructor_vec(vertices))        
+        #    mesh.set_param('index', ospray.data_constructor(indices))            
+        #    mesh.set_param('face', numpy.repeat(3, num_triangles*3).astype('uint32'))
+            
+        mesh.commit()
+        
+        return [mesh]
 
 def read_ply(fname, force_subdivision_mesh=False):
     

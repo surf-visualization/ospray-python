@@ -3,7 +3,7 @@ import sys, getopt, os
 import numpy
 from PIL import Image
 import ospray
-from loaders import read_ply, read_obj
+from loaders import read_ply, read_obj, read_stl
 
 W = 1024
 H = 768
@@ -65,6 +65,8 @@ if ext == '.ply':
     meshes = read_ply(fname, force_subdivision_mesh)
 elif ext in ['.obj', '.OBJ']:
     meshes = read_obj(fname, force_subdivision_mesh)
+elif ext == '.stl':
+    meshes = read_stl(fname, force_subdivision_mesh)
 else:
     raise ValueError('Unknown extension %s' % ext)
 
