@@ -49,22 +49,23 @@ def usage():
     print('%s [options] file.raw|file.h5|file.hdf5' % sys.argv[0])
     print()
     print('Options:')
-    print(' -b r,g,b                Background color')
-    print(' -d xdim,ydim,zdim       .raw dimensions')
-    print(' -D dataset_name         HDF5 dataset name')
+    print(' -b r,g,b                        Background color')
+    print(' -d xdim,ydim,zdim               .raw dimensions')
+    print(' -D dataset_name                 HDF5 dataset name')
     print(' -f axis,minidx,maxidx,value     Fill part of the volume with a specific value')
     print(' -i isovalue')
-    print(' -I width,height         Image resolution')
-    print(' -p                      Use pathtracer')
-    print(' -s xs,ys,zs             Grid spacing')
+    print(' -I width,height                 Image resolution')
+    print(' -p                              Use pathtracer (default: use scivis renderer)')
+    print(' -s xs,ys,zs                     Grid spacing')
     print(' -S samples')
-    print(' -t voxel_type           Voxel data type')
+    print(' -t voxel_type                   Voxel data type')
     print(' -v minval,maxval')
     print()
 
 bgcolor = (1.0, 1.0, 1.0)
 dimensions = None
 dataset_name = None
+image_file = 'colors.png'
 isovalue = None
 grid_spacing = numpy.ones(3, dtype=numpy.float32)
 samples = 4
@@ -74,7 +75,7 @@ value_range = None
 
 
 try:
-    optlist, args = getopt.getopt(argv[1:], 'b:d:D:f:i:I:ps:S:t:v:')
+    optlist, args = getopt.getopt(argv[1:], 'b:d:D:f:i:I:o:ps:S:t:v:')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -97,6 +98,8 @@ for o, a in optlist:
         isovalue = float(a)
     elif o == '-I':
         W, H = map(int, a.split(','))
+    elif o == '-o':
+        image_file = a
     elif o == '-p':
         RENDERER = 'pathtracer'
     elif o == '-s':
@@ -245,7 +248,13 @@ volume.commit()
 
 T = 16
 
-if False:
+if isovalue is not None:
+    # Fixed color and opacity
+    tfcolors = numpy.array([[0.8, 0.8, 0.8]], dtype=numpy.float32)
+    tfopacities = numpy.array([1], dtype=numpy.float32)
+    
+elif False:
+    # Simple gradual TF
     tfcolors = numpy.array([[0, 0, 0], [0, 0, 1]], dtype=numpy.float32)
     tfopacities = numpy.array([0, 1], dtype=numpy.float32)
     
@@ -300,12 +309,14 @@ transfer_function.commit()
 
 vmodel = ospray.VolumetricModel(volume)
 vmodel.set_param('transferFunction', transfer_function)
+#vmodel.set_param('densityScale', 0.1)
+#vmodel.set_param('anisotropy', 0.0)
 vmodel.commit()
 
 # Isosurface rendered
 
 if isovalue is not None:
-
+    
     isovalues = numpy.array([isovalue], dtype=numpy.float32)
     isosurface = ospray.Geometry('isosurfaces')
     isosurface.set_param('isovalue', isovalues)
@@ -451,7 +462,7 @@ sys.stdout.write('\n')
 colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
-img.save('colors.png')
+img.save(image_file)
 
 # XXX seems depths aren't stored on volume hits
 #depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H), format)

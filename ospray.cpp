@@ -5,6 +5,7 @@
 #include <ospray/ospray_cpp.h>
 #include "enums.h"
 #include "conversion.h"
+#include "testing.h"
 
 namespace py = pybind11;
 
@@ -832,5 +833,7 @@ PYBIND11_MODULE(ospray, m)
     
     m.def("data_constructor", &data_from_numpy_array, py::arg(), py::arg("is_shared")=false);
     m.def("data_constructor_vec", &data_from_numpy_array_vec, py::arg(), py::arg("is_shared")=false);
+    
+    define_testing(m);
 }
 
