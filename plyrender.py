@@ -30,7 +30,7 @@ device.commit()
 # Parse arguments
 
 force_subdivision_mesh = False
-samples = 4
+samples = 8
 subvision_level = 5.0
 
 optlist, args = getopt.getopt(argv[1:], 'l:s')
@@ -43,16 +43,17 @@ for o, a in optlist:
 
 # Set up material
 
-#material = ospray.Material('pathtracer', 'Metal')
-#material.set_param('eta', (0.07, 0.37, 1.5))
-#material.set_param('k', (3.7, 2.3, 1.7))
-#material.set_param('roughness', 0.5)
-#material.commit()
+if False:
+    # Gold
+    material = ospray.Material('pathtracer', 'Metal')
+    material.set_param('eta', (0.07, 0.37, 1.5))
+    material.set_param('k', (3.7, 2.3, 1.7))
+    material.set_param('roughness', 0.5)
+else:
+    material = ospray.Material('pathtracer', 'OBJMaterial')
+    #material.set_param('Kd', (0, 0, 1.0))
+    #material.set_param('Ns', 1.0)
 
-# Broken?
-material = ospray.Material('pathtracer', 'OBJMaterial')
-#material.set_param('Kd', (0, 0, 1))
-#material.set_param('Ns', 1.0)
 material.commit()
 
 # Process file
@@ -78,6 +79,10 @@ for mesh in meshes:
     gmodel.commit()
     
     gmodels.append(gmodel)
+    
+if len(gmodels) == 0:
+    print('No models to render!')
+    sys.exit(-1)
     
 print('Have %d meshes' % len(gmodels))
 
@@ -167,31 +172,34 @@ img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
 
-depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H))
-print(depth.shape)
-print(numpy.min(depth), numpy.max(depth))
-depth[depth == numpy.inf] = 1000.0
-img = Image.frombuffer('F', (W,H), depth, 'raw', 'F', 0, 1)
-img = img.transpose(Image.FLIP_TOP_BOTTOM)
-img.save('depth.tif')
+if False:
+    depth = framebuffer.get(ospray.OSP_FB_DEPTH, (W,H))
+    print(depth.shape)
+    print(numpy.min(depth), numpy.max(depth))
+    depth[depth == numpy.inf] = 1000.0
+    img = Image.frombuffer('F', (W,H), depth, 'raw', 'F', 0, 1)
+    img = img.transpose(Image.FLIP_TOP_BOTTOM)
+    img.save('depth.tif')
 
-# XXX not working yet
-#normal = framebuffer.get(ospray.OSP_FB_NORMAL, (W,H))
-#print(normal.shape)
-#print(numpy.min(normal), numpy.max(normal))
-#normal = ((0.5 + 0.5*normal)*255).astype(numpy.uint8)
-#img = Image.frombuffer('RGB', (W,H), depth, 'raw', 'RGB', 0, 1)
-#img = img.transpose(Image.FLIP_TOP_BOTTOM)
-#img.save('normal.png')
+if False:
+    # XXX not working yet
+    normal = framebuffer.get(ospray.OSP_FB_NORMAL, (W,H))
+    print(normal.shape)
+    print(numpy.min(normal), numpy.max(normal))
+    normal = ((0.5 + 0.5*normal)*255).astype(numpy.uint8)
+    img = Image.frombuffer('RGB', (W,H), depth, 'raw', 'RGB', 0, 1)
+    img = img.transpose(Image.FLIP_TOP_BOTTOM)
+    img.save('normal.png')
 
-# XXX not working yet
-#albedo = framebuffer.get(ospray.OSP_FB_ALBEDO, (W,H))
-#print(albedo.shape)
-#print(numpy.min(albedo), numpy.max(albedo))
-#albedo = ((0.5 + 0.5*albedo)*255).astype(numpy.uint8)
-#img = Image.frombuffer('RGB', (W,H), depth, 'raw', 'RGB', 0, 1)
-#img = img.transpose(Image.FLIP_TOP_BOTTOM)
-#img.save('albedo.png')
+if False:
+    # XXX not working yet
+    albedo = framebuffer.get(ospray.OSP_FB_ALBEDO, (W,H))
+    print(albedo.shape)
+    print(numpy.min(albedo), numpy.max(albedo))
+    albedo = ((0.5 + 0.5*albedo)*255).astype(numpy.uint8)
+    img = Image.frombuffer('RGB', (W,H), depth, 'raw', 'RGB', 0, 1)
+    img = img.transpose(Image.FLIP_TOP_BOTTOM)
+    img.save('albedo.png')
 
-# Should raise exception as OSP_FB_ACCUM cannot be mapped
+# Will raise exception as OSP_FB_ACCUM cannot be mapped
 #framebuffer.get(ospray.OSP_FB_ACCUM, (W,H))
