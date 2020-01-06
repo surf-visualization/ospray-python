@@ -1,2 +1,4 @@
 *.so
+*.ppm
+__pycache__
 
