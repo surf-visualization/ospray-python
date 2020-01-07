@@ -126,6 +126,10 @@ data_from_numpy_array(const py::array& array, bool is_shared=false)
     //    return ospray::cpp::Data(num_items, byte_stride, (int8_t*)array.data(), is_shared);
     else if (py::isinstance<py::array_t<uint8_t>>(array))
         return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data(), is_shared);
+    else if (py::isinstance<py::array_t<int16_t>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (int16_t*)array.data(), is_shared);
+    else if (py::isinstance<py::array_t<uint16_t>>(array))
+        return ospray::cpp::Data(num_items, byte_stride, (uint16_t*)array.data(), is_shared);
     else if (py::isinstance<py::array_t<int32_t>>(array))
         return ospray::cpp::Data(num_items, byte_stride, (int32_t*)array.data(), is_shared);
     else if (py::isinstance<py::array_t<uint32_t>>(array))
