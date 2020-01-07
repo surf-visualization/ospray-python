@@ -93,7 +93,7 @@ print_array_info(const py::array &array)
 }
 
 ospray::cpp::Data
-data_from_numpy_array(py::array& array, bool is_shared=false)
+data_from_numpy_array(const py::array& array, bool is_shared=false)
 {
     const int ndim = array.ndim();
     
@@ -155,7 +155,7 @@ data_from_numpy_array(py::array& array, bool is_shared=false)
     typedef vec_t<double, 4> vec4d;
 */
 ospray::cpp::Data
-data_from_numpy_array_vec(py::array& array, bool is_shared=false)
+data_from_numpy_array_vec(const py::array& array, bool is_shared=false)
 {
     const int ndim = array.ndim();
     
@@ -171,7 +171,7 @@ data_from_numpy_array_vec(py::array& array, bool is_shared=false)
     
     if (vecdim < 2 || vecdim > 4)
     {
-        printf("ERROR: last dimension needs be in [2,4] in data_from_numpy_array_vec(): ");
+        printf("ERROR: last dimension needs to be in range 2-4 in data_from_numpy_array_vec(): ");
         print_array_info(array);
         printf("\n");
         return ospray::cpp::Data();
@@ -308,7 +308,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
     
     if (n < 2 || n > 4)
     {
-        printf("ERROR: in set_param_tuple(..., '%s', ...), tuple length should be in range [2,4]!\n", name.c_str());
+        printf("ERROR: in set_param_tuple(..., '%s', ...), tuple length should be in range 2-4!\n", name.c_str());
         return;
     }
     
@@ -453,36 +453,6 @@ template<typename T>
 void
 set_param_numpy_array(T &self, const std::string &name, py::array &array)
 {
-#if 0    
-    if (array.ndim() == 1 && array.shape(0) == 1)
-    {
-        // Single value
-        const py::dtype& dtype = array.dtype();
-        
-        auto value = array[0];
-        
-        // XXX need to correct these calls
-        if (dtype.is(pybind11::dtype::of<float>()))
-            self.setParam(name, py::cast<float>(value));
-        else if (dtype.is(pybind11::dtype::of<double>()))
-        {
-            printf("WARNING: passing double value as parameter, are you sure that's what you want?\n");
-            self.setParam(name, py::cast<double>(value));
-        }
-        else if (dtype.is(pybind11::dtype::of<int>()))
-            self.setParam(name, py::cast<int>(value));
-        else if (dtype.is(pybind11::dtype::of<uint8_t>()))
-            self.setParam(name, py::cast<uint8_t>(value));
-        else if (dtype.is(pybind11::dtype::of<uint32_t>()))
-            self.setParam(name, py::cast<uint32_t>(value));
-        else if (dtype.is(pybind11::dtype::of<uint64_t>()))
-            self.setParam(name, py::cast<uint64_t>(value));
-        
-        return;
-    }        
-#endif
-
-    // Multiple values -> Data
     self.setParam(name, data_from_numpy_array(array));
 }
 
@@ -725,7 +695,6 @@ PYBIND11_MODULE(ospray, m)
             
     py::class_<ospray::cpp::PickResult>(m, "PickResult")
         .def_readonly("has_hit", &ospray::cpp::PickResult::hasHit)
-        .def_readonly("world_position", &ospray::cpp::PickResult::worldPosition)    
         .def_property_readonly("instance", 
             [](const ospray::cpp::PickResult& self) {
                 return ospray::cpp::Instance(self.instance);
@@ -735,6 +704,7 @@ PYBIND11_MODULE(ospray, m)
                 return ospray::cpp::GeometricModel(self.model);
             })                        
         .def_readonly("prim_id", &ospray::cpp::PickResult::primID)   
+        .def_readonly("world_position", &ospray::cpp::PickResult::worldPosition)    
     ;
             
     py::class_<ospray::cpp::FrameBuffer, ManagedFrameBuffer>(m, "FrameBuffer")
@@ -752,10 +722,10 @@ PYBIND11_MODULE(ospray, m)
        
     py::class_<ospray::cpp::Future, ManagedFuture>(m, "Future")
         .def(py::init<>())
-        .def("is_ready", &ospray::cpp::Future::isReady, py::arg("event")=OSP_TASK_FINISHED)
-        .def("wait", &ospray::cpp::Future::wait, py::arg("event")=OSP_TASK_FINISHED)
         .def("cancel", &ospray::cpp::Future::cancel)
+        .def("is_ready", &ospray::cpp::Future::isReady, py::arg("event")=OSP_TASK_FINISHED)
         .def("progress", &ospray::cpp::Future::progress)
+        .def("wait", &ospray::cpp::Future::wait, py::arg("event")=OSP_TASK_FINISHED)
     ;            
             
     py::class_<ospray::cpp::GeometricModel, ManagedGeometricModel>(m, "GeometricModel")
