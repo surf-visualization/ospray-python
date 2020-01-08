@@ -200,6 +200,7 @@ elif ext in ['.vtk', '.vti']:
     voxel_type = {
         #'int8': ospray.OSP_CHAR,
         'unsigned char': ospray.OSP_UCHAR,
+        'short': ospray.OSP_SHORT,
         #'int16': ospray.OSP_SHORT,
         #'uint16': ospray.OSP_USHORT,
         'float': ospray.OSP_FLOAT,

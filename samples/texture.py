@@ -87,7 +87,7 @@ elif False:
     format = ospray.OSP_TEXTURE_RGB32F
     data = ospray.data_constructor_vec(pixels)
 elif True:
-    img = Image.open('tests/teaser_materials.jpg')
+    img = Image.open(os.path.join(scriptdir, 'teaser_materials.jpg'))
     img = img.transpose(Image.FLIP_TOP_BOTTOM)
     pixels = numpy.array(img)
     data = ospray.data_constructor_vec(pixels)
