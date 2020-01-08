@@ -66,7 +66,7 @@ def usage():
     print()
 
 anisotropy = 0.0
-bgcolor = (1.0, 1.0, 1.0)
+bgcolor = (1.0, 1.0, 1.0, 0.0)
 dimensions = None
 dataset_name = None
 image_file = 'colors.png'
@@ -363,28 +363,10 @@ else:
 
     instances = [vinstance]
 
-# Lights
-
-if RENDERER == 'pathtracer':
-
-    light1 = ospray.Light('ambient')
-    light1.set_param('color', (1.0, 1.0, 1.0))
-    light1.set_param('intensity', 0.3)
-    light1.commit()
-
-    light2 = ospray.Light('distant')
-    light2.set_param('direction', (2.0, 1.0, -1.0))
-    light2.set_param('intensity', 0.7)
-    light2.commit()
-
-    lights = [light1, light2]
-
 # World
 
 world = ospray.World()
 world.set_param('instance', instances)
-if RENDERER == 'pathtracer':
-    world.set_param('light', lights)
 world.commit()
 
 bound = world.get_bounds()
@@ -426,6 +408,25 @@ camera.commit()
 #camera.set_param('direction', cam_view)
 #camera.set_param('up', cam_up)
 #camera.commit()
+
+# Lights
+
+if RENDERER == 'pathtracer':
+
+    light1 = ospray.Light('ambient')
+    light1.set_param('color', (1.0, 1.0, 1.0))
+    light1.set_param('intensity', 0.3)
+    light1.commit()
+
+    light2 = ospray.Light('distant')
+    light2.set_param('direction', tuple(cam_view.tolist()))#(2.0, 1.0, -1.0))
+    light2.set_param('intensity', 0.7)
+    light2.commit()
+
+    lights = [light1, light2]
+
+    world.set_param('light', lights)
+    world.commit()
 
 # Renderer
 
