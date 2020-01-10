@@ -52,10 +52,11 @@ def usage():
     print('%s [options] file.raw|file.h5|file.hdf5' % sys.argv[0])
     print()
     print('Options:')
-    print(' -b r,g,b                        Background color')
+    print(' -b r,g,b[,a]                    Background color')
     print(' -d xdim,ydim,zdim               .raw dimensions')
     print(' -D dataset_name                 HDF5 dataset name')
     print(' -f axis,minidx,maxidx,value     Fill part of the volume with a specific value')
+    print(' -g                              Simple gradual TF')
     print(' -i isovalue')
     print(' -I width,height                 Image resolution')
     print(' -p                              Use pathtracer (default: use scivis renderer)')
@@ -66,10 +67,11 @@ def usage():
     print()
 
 anisotropy = 0.0
-bgcolor = (1.0, 1.0, 1.0, 0.0)
+bgcolor = (1.0, 1.0, 1.0, 1.0)
 dimensions = None
 dataset_name = None
-image_file = 'colors.png'
+gradual_tf = False
+image_file = 'volume.png'
 isovalue = None
 grid_spacing = numpy.ones(3, dtype=numpy.float32)
 samples = 4
@@ -79,7 +81,7 @@ value_range = None
 
 
 try:
-    optlist, args = getopt.getopt(argv[1:], 'a:b:d:D:f:i:I:o:ps:S:t:v:')
+    optlist, args = getopt.getopt(argv[1:], 'a:b:d:D:f:gi:I:o:ps:S:t:v:')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -89,8 +91,11 @@ for o, a in optlist:
     if o == '-a':
         anisotropy = float(a)
     elif o == '-b':
-        bgcolor = tuple(map(float, a.split(',')))
-        assert len(bgcolor) == 3
+        bgcolor = list(map(float, a.split(',')))
+        assert len(bgcolor) in [3,4]
+        if len(bgcolor) == 3:
+            bgcolor.append(1.0)
+        bgcolor = tuple(bgcolor)
     elif o == '-d':
         dimensions = tuple(map(int, a.split(',')))
         assert len(dimensions) == 3
@@ -99,7 +104,9 @@ for o, a in optlist:
     elif o == '-f':
         pp = a.split(',')
         assert len(pp) == 4
-        set_value = (int(pp[0]), int(pp[1]), int(pp[2]), float(pp[3]))        
+        set_value = (int(pp[0]), int(pp[1]), int(pp[2]), float(pp[3]))     
+    elif o == '-g':
+        gradual_tf = True
     elif o == '-i':
         isovalue = float(a)
     elif o == '-I':
@@ -244,10 +251,8 @@ saved_data = data
 
 data = ospray.data_constructor(data, is_shared=True)
 
-volume = ospray.Volume('structured_regular')
-volume.set_param('dimensions', dimensions)
+volume = ospray.Volume('structuredRegular')
 volume.set_param('gridSpacing', tuple(grid_spacing.tolist()))
-volume.set_param('voxelType', voxel_type)
 volume.set_param('data', data)
 volume.commit()
 
@@ -260,7 +265,7 @@ if isovalue is not None:
     tfcolors = numpy.array([[0.8, 0.8, 0.8]], dtype=numpy.float32)
     tfopacities = numpy.array([1], dtype=numpy.float32)
     
-elif False:
+elif gradual_tf:
     # Simple gradual TF
     tfcolors = numpy.array([[0, 0, 0], [0, 0, 1]], dtype=numpy.float32)
     tfopacities = numpy.array([0, 1], dtype=numpy.float32)
@@ -308,7 +313,7 @@ else:
 print('tfcolors', tfcolors.shape)
 print('tfopacities', tfopacities.shape)
     
-transfer_function = ospray.TransferFunction('piecewise_linear')
+transfer_function = ospray.TransferFunction('piecewiseLinear')
 transfer_function.set_param('color', ospray.data_constructor_vec(tfcolors))
 transfer_function.set_param('opacity', tfopacities)
 transfer_function.set_param('valueRange', tuple(value_range))
@@ -325,13 +330,13 @@ vmodel.commit()
 if isovalue is not None:
     
     isovalues = numpy.array([isovalue], dtype=numpy.float32)
-    isosurface = ospray.Geometry('isosurfaces')
+    isosurface = ospray.Geometry('isosurface')
     isosurface.set_param('isovalue', isovalues)
     isosurface.set_param('volume', vmodel)
     isosurface.commit()
 
-    material = ospray.Material(RENDERER, 'OBJMaterial')
-    material.set_param('Kd', (0.5, 0.5, 1.0))
+    material = ospray.Material(RENDERER, 'obj')
+    material.set_param('kd', (0.5, 0.5, 1.0))
     material.set_param('d', 1.0)
     material.commit()
 
@@ -438,7 +443,7 @@ if RENDERER == 'pathtracer':
 #backplate.commit()
 
 renderer = ospray.Renderer(RENDERER)
-renderer.set_param('bgColor', bgcolor)
+renderer.set_param('backgroundColor', bgcolor)
 
 #if isovalue is not None:
 #    renderer.set_param('bgColor', 1.0)

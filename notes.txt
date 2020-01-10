@@ -43,3 +43,13 @@ Types used in the API:
 
 
 https://github.com/pybind/pybind11/issues/1201
+
+
+
+--------------------------------------------------------------
+
+- Setting backgroundColor to a float results in alpha=0?
+- Some weird behaviour with backgroundColor and volume rendering.
+  Using backgroundColor 1,1,1,0 and then compositing the resulting
+  image on a white background gives a greyscale result?
+  Using 0,0,0,0 as background also seems weird.

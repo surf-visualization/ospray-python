@@ -142,7 +142,8 @@ with (light := ospray.Light('ambient')):
 
 ```
 #!/usr/bin/env python
-import sys
+import sys, os
+
 import numpy
 from PIL import Image
 import ospray
@@ -197,7 +198,7 @@ group.commit()
 instance = ospray.Instance(group)
 instance.commit()
 
-material = ospray.Material('pathtracer', 'OBJMaterial')
+material = ospray.Material('pathtracer', 'obj')
 material.commit()
 
 gmodel.set_param('material', material)
@@ -216,7 +217,7 @@ world.commit()
 
 renderer = ospray.Renderer('pathtracer')
 renderer.set_param('aoSamples', 1)
-renderer.set_param('bgColor', 1.0)
+renderer.set_param('backgroundColor', (1.0, 1.0, 1.0, 1.0))
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA

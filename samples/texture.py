@@ -42,6 +42,24 @@ index = numpy.array([
 
 ospray.init(sys.argv)
 
+# Enable logging output
+
+def error_callback(error, details):
+    print('OSPRAY ERROR: %d (%s)' % (error, details))
+    
+def status_callback(message):
+    print('OSPRAY STATUS: %s' % message)
+    
+ospray.set_error_func(error_callback)
+ospray.set_status_func(status_callback)
+
+device = ospray.get_current_device()
+device.set('logLevel', 1)
+#device.set('logOutput', 'cerr')
+#device.set('errorOutput', 'cerr')
+device.commit()
+
+
 camera = ospray.Camera('perspective')
 camera.set_param('aspect', W/H)
 camera.set_param('position', cam_pos)
@@ -99,8 +117,8 @@ texture.set_param('data', data)
 texture.set_param('filter', filter)
 texture.commit()
 
-material = ospray.Material('pathtracer', 'OBJMaterial')
-material.set_param('map_Kd', texture)
+material = ospray.Material('pathtracer', 'obj')
+material.set_param('map_kd', texture)
 material.commit()
 
 gmodel.set_param('material', material)
@@ -118,8 +136,7 @@ world.commit()
 #print(world.get_bounds())
 
 renderer = ospray.Renderer('pathtracer')
-renderer.set_param('aoSamples', 1)
-renderer.set_param('bgColor', 1.0)
+renderer.set_param('backgroundColor', (1.0, 1.0, 1.0, 1.0))
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA
