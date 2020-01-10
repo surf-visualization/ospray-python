@@ -154,7 +154,7 @@ world.commit()
 print('World bound', world.get_bounds())
 
 renderer = ospray.Renderer('pathtracer')
-renderer.set_param('backgroundColor', (1.0, 1, 1, 0))
+renderer.set_param('backgroundColor', (1.0, 1, 1, 1))
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA
