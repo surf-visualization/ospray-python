@@ -48,12 +48,12 @@ for o, a in optlist:
 
 if False:
     # Gold
-    material = ospray.Material('pathtracer', 'Metal')
+    material = ospray.Material('pathtracer', 'metal')
     material.set_param('eta', (0.07, 0.37, 1.5))
     material.set_param('k', (3.7, 2.3, 1.7))
     material.set_param('roughness', 0.5)
 else:
-    material = ospray.Material('pathtracer', 'OBJMaterial')
+    material = ospray.Material('pathtracer', 'obj')
     #material.set_param('Kd', (0, 0, 1.0))
     #material.set_param('Ns', 1.0)
 
@@ -154,7 +154,7 @@ world.commit()
 print('World bound', world.get_bounds())
 
 renderer = ospray.Renderer('pathtracer')
-renderer.set_param('bgColor', (1.0, 1, 1, 0))
+renderer.set_param('backgroundColor', (1.0, 1, 1, 0))
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA
