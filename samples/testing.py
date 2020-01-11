@@ -80,7 +80,7 @@ print(center)
 position = center + 3*(bound[1] - center)
 
 cam_pos = tuple(position.tolist() + numpy.array((1,1,1),'float32'))
-cam_up = (0.0, 0, 1)
+cam_up = (0.0, 1, 0)
 cam_view = tuple((center - position + numpy.array((0,0,2),'float32')).tolist())
 
 camera = ospray.Camera('perspective')
@@ -108,7 +108,7 @@ world.commit()
 print('World bound', world.get_bounds())
 
 renderer = ospray.Renderer(RENDERER)
-renderer.set_param('bgColor', 1.0)
+renderer.set_param('backgroundColor', (1.0, 1.0, 1.0, 1.0))
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA
