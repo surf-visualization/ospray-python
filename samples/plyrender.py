@@ -33,31 +33,40 @@ device.commit()
 # Parse arguments
 
 force_subdivision_mesh = False
+renderer_type = 'pathtracer'
+debug_renderer_type = 'primID'
 samples = 8
 subvision_level = 5.0
 
-optlist, args = getopt.getopt(argv[1:], 'l:s')
+optlist, args = getopt.getopt(argv[1:], 'd:l:s')
 
 for o, a in optlist:
-    if o == '-l':
+    if o == '-d':
+        renderer_type = 'debug'
+        debug_renderer_type = a
+        if debug_renderer_type not in ['rayDir','eyeLight','primID','geomID','instID','Ng','Ns','backfacing_Ng','backfacing_Ns','dPds','dPdt','volume']:
+            print('Debug renderer will show test frame')
+    elif o == '-l':
         subvision_level = float(a)
     elif o == '-s':
         force_subdivision_mesh = True
 
 # Set up material
 
-if False:
-    # Gold
-    material = ospray.Material('pathtracer', 'metal')
-    material.set_param('eta', (0.07, 0.37, 1.5))
-    material.set_param('k', (3.7, 2.3, 1.7))
-    material.set_param('roughness', 0.5)
-else:
-    material = ospray.Material('pathtracer', 'obj')
-    #material.set_param('Kd', (0, 0, 1.0))
-    #material.set_param('Ns', 1.0)
+if renderer_type != 'debug':
 
-material.commit()
+    if False:
+        # Gold
+        material = ospray.Material(renderer_type, 'metal')
+        material.set_param('eta', (0.07, 0.37, 1.5))
+        material.set_param('k', (3.7, 2.3, 1.7))
+        material.set_param('roughness', 0.5)
+    else:
+        material = ospray.Material(renderer_type, 'obj')
+        #material.set_param('Kd', (0, 0, 1.0))
+        #material.set_param('Ns', 1.0)
+
+    material.commit()
 
 # Process file
 
@@ -80,7 +89,8 @@ for mesh in meshes:
         mesh.set_param('level', subvision_level)
     
     gmodel = ospray.GeometricModel(mesh)
-    gmodel.set_param('material', material)
+    if renderer_type != 'debug':
+        gmodel.set_param('material', material)
     gmodel.commit()
     
     gmodels.append(gmodel)
@@ -153,8 +163,10 @@ world.set_param('light', lights)
 world.commit()
 print('World bound', world.get_bounds())
 
-renderer = ospray.Renderer('pathtracer')
+renderer = ospray.Renderer(renderer_type)
 renderer.set_param('backgroundColor', (1.0, 1, 1, 1))
+if renderer_type == 'debug':
+    renderer.set_param('method', debug_renderer_type)
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA

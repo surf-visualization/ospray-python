@@ -278,7 +278,7 @@ template<typename T>
 void
 set_param_string(T &self, const std::string &name, const std::string &value)
 {
-    self.setParam(name, value.c_str());
+    self.setParam(name, value);
 }
 
 template<typename T>
