@@ -1,0 +1,74 @@
+Geometry:
+  has_subtypes: true
+  
+  mesh:
+    vertex.position:
+      - vec3f[]
+    vertex.normal:
+      - vec3f[]
+    vertex.color:
+      - vec3f[]
+      - vec4f[]
+    vertex.texcoord:
+      - vec2f[]
+    index:
+      - vec3ui[]
+      - vec4ui[]
+
+
+Volume:
+  has_subtypes: true
+  
+  structured_regular:
+    data:
+      - Data
+    dimensions:
+      - vec3i
+    voxelType:
+      - int         # enum(OSPDataType)
+    gridOrigin:
+      - vec3f
+    gridSpacing:
+      - vec3f
+
+  amr:
+    data:
+      - Data  
+    method:
+      - int         # enum(OSPAMRMethod)
+    cellWidth:
+      - float[]
+    block.bounds:
+      - box3f[]
+    block.level:
+      - int[]
+    block.data:
+      - OSPData[]
+    gridOrigin:
+      - vec3f
+    gridSpacing:
+      - vec3f
+    
+  unstructured:
+    vertex.position:
+      - vec3f[]
+    vertex.value:
+      - float[]
+    index:
+      - uint32[]
+      - uint64[]
+    indexPrefixed:
+      - uint32[]
+      - uint64[]
+    cell.index:
+      - uint32[]
+      - uint64[]
+    cell.value:
+      - float[]
+    cell.type:      
+      - uint8[]     # enum(OSPUnstructuredCellType)
+    hexIterative:
+      - bool
+    precomputedNormals:
+      - bool
+      
