@@ -44,7 +44,7 @@ status_func(const char *message)
         py_status_func(message);
 }
 
-std::vector<std::string>
+static std::vector<std::string>
 init(const std::vector<std::string>& args)
 {
     int argc = args.size();
@@ -77,6 +77,19 @@ init(const std::vector<std::string>& args)
     
     return newargs;
 }
+
+static void
+load_module(const std::string& name)
+{
+    OSPError res = ospLoadModule(name.c_str());
+    
+    if (res != OSP_NO_ERROR)
+    {
+        std::string msg = "ospLoadModule(" + name + ") failed: " + std::to_string(res);
+        throw std::runtime_error(msg);
+    }
+}
+
 
 static void
 print_array_info(const py::array &array)
@@ -677,6 +690,10 @@ PYBIND11_MODULE(ospray, m)
         .def("set", (void (ospray::cpp::Device::*)(const std::string &, int) const) &ospray::cpp::Device::set)
         //void set(const std::string &name, void *v) const;
     ;
+    
+    // Modules
+    
+    m.def("load_module", &load_module);
     
     // Scene
     
