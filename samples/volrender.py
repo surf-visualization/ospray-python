@@ -53,16 +53,17 @@ def usage():
     print()
     print('Options:')
     print(' -b r,g,b[,a]                    Background color')
-    print(' -d xdim,ydim,zdim               .raw dimensions')
+    print(' -d xdim,ydim,zdim               .raw file dimensions')
     print(' -D dataset_name                 HDF5 dataset name')
     print(' -f axis,minidx,maxidx,value     Fill part of the volume with a specific value')
     print(' -g                              Simple gradual TF')
-    print(' -i isovalue')
+    print(' -i isovalue                     Render as isosurface instead of volume')
     print(' -I width,height                 Image resolution')
     print(' -p                              Use pathtracer (default: use scivis renderer)')
     print(' -s xs,ys,zs                     Grid spacing')
-    print(' -S samples')
-    print(' -v minval,maxval')
+    print(' -S samples                      Samples per pixel')
+    print(' -v minval,maxval                Volume value range')
+    print(' -x                              Display image after rendering (uses tkinter)')
     print()
 
 anisotropy = 0.0
@@ -76,10 +77,11 @@ grid_spacing = numpy.ones(3, dtype=numpy.float32)
 samples = 4
 set_value = None
 value_range = None
+display_result = False
 
 
 try:
-    optlist, args = getopt.getopt(argv[1:], 'a:b:d:D:f:gi:I:o:ps:S:t:v:')
+    optlist, args = getopt.getopt(argv[1:], 'a:b:d:D:f:gi:I:o:ps:S:t:v:x')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -121,6 +123,8 @@ for o, a in optlist:
         samples = int(a)
     elif o == '-v':
         value_range = tuple(map(float, a.split(',')))
+    elif o == '-x':
+        display_result = True
 
 if len(args) == 0:
     usage()
@@ -462,3 +466,16 @@ img.save(image_file)
 
 t1 = time.time()
 print('All done in %.3fs' % (t1-t0))
+
+if display_result:
+    from PIL import ImageTk
+    from tkinter import *
+    
+    # https://stackoverflow.com/a/16536496
+    root = Tk()
+    tkimg = ImageTk.PhotoImage(img)
+    panel = Label(root, image = tkimg)
+    panel.pack(side = "bottom", fill = "both", expand = "yes")
+    
+    root.bind("<Escape>", lambda e: sys.exit(-1))
+    root.mainloop()
