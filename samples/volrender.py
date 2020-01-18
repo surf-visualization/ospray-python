@@ -62,7 +62,6 @@ def usage():
     print(' -p                              Use pathtracer (default: use scivis renderer)')
     print(' -s xs,ys,zs                     Grid spacing')
     print(' -S samples')
-    print(' -t voxel_type                   Voxel data type')
     print(' -v minval,maxval')
     print()
 
@@ -76,7 +75,6 @@ isovalue = None
 grid_spacing = numpy.ones(3, dtype=numpy.float32)
 samples = 4
 set_value = None
-voxel_type = None
 value_range = None
 
 
@@ -121,10 +119,6 @@ for o, a in optlist:
         grid_spacing = numpy.array(grid_spacing, dtype=numpy.float32)
     elif o == '-S':
         samples = int(a)
-    elif o == '-t':
-        voxel_type = {
-            'uchar':    ospray.OSP_UCHAR
-        }[a]
     elif o == '-v':
         value_range = tuple(map(float, a.split(',')))
 
@@ -145,9 +139,6 @@ if ext == '.raw':
     data = numpy.fromfile(volfile, dtype=numpy.uint8)    
     data = data.reshape(dimensions)
     
-    if voxel_type is None:
-        voxel_type = ospray.OSP_UCHAR
-    
     extent[1] = dimensions * grid_spacing   
     
 elif ext in ['.h5', '.hdf5']:
@@ -165,17 +156,6 @@ elif ext in ['.h5', '.hdf5']:
     
     if value_range is None:
         value_range = tuple(map(float, (numpy.min(data), numpy.max(data))))
-    
-    dtype = str(data.dtype)
-        
-    voxel_type = {
-        'int8': ospray.OSP_CHAR,
-        'uint8': ospray.OSP_UCHAR,
-        'int16': ospray.OSP_SHORT,
-        'uint16': ospray.OSP_USHORT,
-        'float32': ospray.OSP_FLOAT,
-        'float64': ospray.OSP_DOUBLE,
-    }[dtype]
     
     extent[1] = dimensions * grid_spacing   
     
@@ -203,25 +183,19 @@ elif ext in ['.vtk', '.vti']:
     grid_spacing = numpy.array(sp.GetSpacing(), 'float32')
     
     scalar_type = sp.GetScalarTypeAsString()
+    print('scalar_type', scalar_type)
         
-    voxel_type = {
-        #'int8': ospray.OSP_CHAR,
-        'unsigned char': ospray.OSP_UCHAR,
-        'short': ospray.OSP_SHORT,
-        #'int16': ospray.OSP_SHORT,
-        #'uint16': ospray.OSP_USHORT,
-        'float': ospray.OSP_FLOAT,
-        'double': ospray.OSP_DOUBLE,
-    }[scalar_type]
-    
     volume_do = dataset_adapter.WrapDataObject(sp)
     assert len(volume_do.PointData.keys()) > 0
     scalar_name = volume_do.PointData.keys()[0]
-    print('Point data', scalar_name)
-    
     data = volume_do.PointData[scalar_name]
+
+    print('Point scalar data "%s"' % scalar_name, data)
+    
     assert len(data.shape) == 1
-        
+    data = data.reshape(dimensions)
+    assert len(data.shape) == 3
+    
     value_range = tuple(map(float, (numpy.min(data), numpy.max(data))))
     
 else:
