@@ -37,8 +37,9 @@ renderer_type = 'pathtracer'
 debug_renderer_type = 'primID'
 samples = 8
 subvision_level = 5.0
+display_result = False
 
-optlist, args = getopt.getopt(argv[1:], 'd:l:s')
+optlist, args = getopt.getopt(argv[1:], 'd:l:sx')
 
 for o, a in optlist:
     if o == '-d':
@@ -50,6 +51,8 @@ for o, a in optlist:
         subvision_level = float(a)
     elif o == '-s':
         force_subdivision_mesh = True
+    elif o == '-x':
+        display_result = True
 
 # Set up material
 
@@ -217,3 +220,16 @@ if False:
 
 # Will raise exception as OSP_FB_ACCUM cannot be mapped
 #framebuffer.get(ospray.OSP_FB_ACCUM, (W,H))
+
+if display_result:
+    from PIL import ImageTk
+    from tkinter import *
+    
+    # https://stackoverflow.com/a/16536496
+    root = Tk()
+    tkimg = ImageTk.PhotoImage(img)
+    panel = Label(root, image = tkimg)
+    panel.pack(side = "bottom", fill = "both", expand = "yes")
+    
+    root.bind("<Escape>", lambda e: sys.exit(-1))
+    root.mainloop()
