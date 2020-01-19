@@ -44,6 +44,28 @@ status_func(const char *message)
         py_status_func(message);
 }
 
+static void
+throw_osperror(const std::string& prefix, OSPError e)
+{
+    std::string msg = prefix + ": ";
+    std::string error;
+    
+    switch (e)
+    {
+      case OSP_NO_ERROR          : error="No error has been recorded"; break;
+      case OSP_UNKNOWN_ERROR     : error="An unknown error has occurred"; break;
+      case OSP_INVALID_ARGUMENT  : error="An invalid argument is specified"; break;
+      case OSP_INVALID_OPERATION : error="The operation is not allowed for the specified object"; break;
+      case OSP_OUT_OF_MEMORY     : error="There is not enough memory left to execute the command"; break;
+      case OSP_UNSUPPORTED_CPU   : error="The CPU is not supported as it does not support SSE4.1"; break;
+      case OSP_VERSION_MISMATCH  : error="A module could not be loaded due to mismatching version"; break;
+    }
+
+    msg = msg + error;
+    
+    throw std::runtime_error(msg);
+}
+
 static std::vector<std::string>
 init(const std::vector<std::string>& args)
 {
@@ -58,8 +80,7 @@ init(const std::vector<std::string>& args)
     if (res != OSP_NO_ERROR)
     {
         delete [] argv;
-        std::string msg = "ospInit() failed: " + std::to_string(res);
-        throw std::runtime_error(msg);
+        throw_osperror("ospInit() failed", res);
     }
     
     std::vector<std::string> newargs;
@@ -84,10 +105,7 @@ load_module(const std::string& name)
     OSPError res = ospLoadModule(name.c_str());
     
     if (res != OSP_NO_ERROR)
-    {
-        std::string msg = "ospLoadModule(" + name + ") failed: " + std::to_string(res);
-        throw std::runtime_error(msg);
-    }
+        throw_osperror("ospLoadModule('" + name + "') failed", res);
 }
 
 
