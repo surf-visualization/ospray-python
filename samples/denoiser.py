@@ -77,7 +77,6 @@ world.set_param('light', [light])
 world.commit()
 
 renderer = ospray.Renderer('pathtracer')
-renderer.set_param('aoSamples', 1)
 renderer.set_param('backgroundColor', (1.0, 1.0, 1.0, 1.0))
 renderer.commit()
 
@@ -105,4 +104,23 @@ colors = (colors * 255).astype('uint8')
 
 img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
-img.save('denoised.png')
+img.save('with-denoise.png')
+
+# Render again without denoising
+
+framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer.commit()
+
+framebuffer.clear()
+
+future = framebuffer.render_frame(renderer, camera, world)
+future.wait()
+    
+colors = framebuffer.get(ospray.OSP_FB_COLOR, (W,H), format)
+print(colors.shape, colors.dtype)
+
+colors = (colors * 255).astype('uint8')
+
+img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
+img = img.transpose(Image.FLIP_TOP_BOTTOM)
+img.save('without-denoise.png')
