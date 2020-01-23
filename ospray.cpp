@@ -3,6 +3,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/operators.h>
 #include <ospray/ospray_cpp.h>
+#include <ospray/version.h>
 #include "enums.h"
 #include "conversion.h"
 #include "testing.h"
@@ -65,8 +66,21 @@ throw_osperror(const std::string& prefix, OSPError e)
     
     throw std::runtime_error(msg);
 }
+    
+static py::tuple 
+runtime_version()
+{
+    ospray::cpp::Device device = ospGetCurrentDevice();
+    
+    return py::make_tuple(
+        ospDeviceGetProperty(device.handle(), OSP_DEVICE_VERSION_MAJOR),
+        ospDeviceGetProperty(device.handle(), OSP_DEVICE_VERSION_MINOR),
+        ospDeviceGetProperty(device.handle(), OSP_DEVICE_VERSION_PATCH)
+    );
+}
 
 static std::vector<std::string>
+//init(const py::module& m, const std::vector<std::string>& args)
 init(const std::vector<std::string>& args)
 {
     int argc = args.size();
@@ -95,6 +109,12 @@ init(const std::vector<std::string>& args)
     OSPDevice device = ospGetCurrentDevice();
     ospDeviceSetErrorFunc(device, error_func);
     ospDeviceSetStatusFunc(device, status_func);
+    
+    /*
+    py::tuple rt_version = runtime_version();
+    if (rt_version() != version_compiled)
+        py::print("WARNING: run-time version", version_runtime, "does not match compile-time version", version_compiled);
+    */
     
     return newargs;
 }
@@ -666,6 +686,13 @@ PYBIND11_MODULE(ospray, m)
     define_enums(m);
     
     m.def("init", &init);
+    /*
+    m.def("init", [&](const std::vector<std::string>& args) {
+        return init(m, args);
+        //return py::make_tuple();
+    });
+    */
+    
     m.def("shutdown", &ospShutdown);
         
     declare_managedobject<ManagedCamera>(m, "ManagedCamera");
@@ -843,6 +870,16 @@ PYBIND11_MODULE(ospray, m)
     m.def("data_constructor", &data_from_numpy_array, py::arg(), py::arg("is_shared")=false);
     m.def("data_constructor_vec", &data_from_numpy_array_vec, py::arg(), py::arg("is_shared")=false);
     
+    // Library version
+
+    // Compile-time
+    m.attr("VERSION") = py::make_tuple(OSPRAY_VERSION_MAJOR, OSPRAY_VERSION_MINOR, OSPRAY_VERSION_PATCH);
+    
+    // Run-time, can only be called after a device is created. 
+    // Returns version for current device
+    m.def("version", &runtime_version);
+
+    // Define testing submodule
     define_testing(m);
 }
 
