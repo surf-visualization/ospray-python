@@ -80,7 +80,7 @@ renderer = ospray.Renderer('pathtracer')
 renderer.set_param('backgroundColor', (1.0, 1.0, 1.0, 1.0))
 renderer.commit()
 
-denoise = ospray.ImageOperation('frame_denoise')
+denoise = ospray.ImageOperation('denoiser')
 denoise.commit()
 
 format = ospray.OSP_FB_RGBA32F
