@@ -56,18 +56,20 @@ for o, a in optlist:
 
 # Set up material
 
-if False:
-    # Gold
-    material = ospray.Material(renderer_type, 'metal')
-    material.set_param('eta', (0.07, 0.37, 1.5))
-    material.set_param('k', (3.7, 2.3, 1.7))
-    material.set_param('roughness', 0.5)
-else:
-    material = ospray.Material(renderer_type, 'obj')
-    #material.set_param('Kd', (0, 0, 1.0))
-    #material.set_param('Ns', 1.0)
+material = None
+if renderer_type in ['scivis', 'pathtracer']:
+    if False:
+        # Gold
+        material = ospray.Material(renderer_type, 'metal')
+        material.set_param('eta', (0.07, 0.37, 1.5))
+        material.set_param('k', (3.7, 2.3, 1.7))
+        material.set_param('roughness', 0.5)
+    else:
+        material = ospray.Material(renderer_type, 'obj')
+        #material.set_param('Kd', (0, 0, 1.0))
+        #material.set_param('Ns', 1.0)
 
-material.commit()
+    material.commit()
 
 # Process file
 
@@ -90,7 +92,8 @@ for mesh in meshes:
         mesh.set_param('level', subvision_level)
     
     gmodel = ospray.GeometricModel(mesh)
-    gmodel.set_param('material', material)
+    if material is not None:
+        gmodel.set_param('material', material)
     gmodel.commit()
     
     gmodels.append(gmodel)
