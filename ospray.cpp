@@ -304,6 +304,86 @@ data_from_numpy_array_vec(const py::array& array, bool is_shared=false)
     return ospray::cpp::Data();
 }
 
+
+// Turn a numpy array of shape (..., 2|4|6|8) into a Data object of
+// the corresponding box<n><t> type
+/*
+    using box1i  = range_t<int32_t>;
+    using box2i  = box_t<int32_t, 2>;
+    using box3i  = box_t<int32_t, 3>;
+    using box4i  = box_t<int32_t, 4>;
+    using box1f  = range_t<float>;
+    using box2f  = box_t<float, 2>;
+    using box3f  = box_t<float, 3>;
+    using box4f  = box_t<float, 4>;
+    //using box3fa = box_t<float, 3, 1>;
+*/
+ospray::cpp::Data
+data_from_numpy_array_box(const py::array& array, bool is_shared=false)
+{
+    const int ndim = array.ndim();
+    
+    if (ndim > 3)
+    {
+        printf("ERROR: more than 3 dimensions not supported in data_from_numpy_array_box(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::Data();
+    }
+    
+    const int vecdim = array.shape(ndim-1);
+    
+    if (vecdim != 2 && vecdim != 4 && vecdim != 6 && vecdim != 8)
+    {
+        printf("ERROR: last dimension needs to be 2,4,6 or 8 in data_from_numpy_array_box(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::Data();
+    }
+    
+    const py::dtype& dtype = array.dtype();
+    ospcommon::math::vec3ul num_items { 1, 1, 1 };
+    ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
+    
+    for (int i = 0; i < ndim-1; i++)
+        num_items[i] = array.shape(i);
+    
+    if (vecdim == 2)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box1f*)array.data(), is_shared);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box1i*)array.data(), is_shared);
+    }       
+    else if (vecdim == 4)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box2f*)array.data(), is_shared);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box2i*)array.data(), is_shared);
+    }
+    else if (vecdim == 6)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box3f*)array.data(), is_shared);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box3i*)array.data(), is_shared);
+    }
+    else
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box4f*)array.data(), is_shared);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box4i*)array.data(), is_shared);
+    }
+    
+    printf("WARNING: unhandled array in data_from_numpy_array_box(): ");
+    print_array_info(array);
+    printf("\n");
+        
+    return ospray::cpp::Data();
+}
+
 template<typename T>
 void
 set_param_bool(T &self, const std::string &name, const bool &value)
@@ -869,6 +949,7 @@ PYBIND11_MODULE(ospray, m)
     
     m.def("data_constructor", &data_from_numpy_array, py::arg(), py::arg("is_shared")=false);
     m.def("data_constructor_vec", &data_from_numpy_array_vec, py::arg(), py::arg("is_shared")=false);
+    m.def("data_constructor_box", &data_from_numpy_array_box, py::arg(), py::arg("is_shared")=false);
     
     // Library version
 
