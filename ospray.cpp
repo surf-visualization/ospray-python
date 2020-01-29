@@ -70,7 +70,7 @@ throw_osperror(const std::string& prefix, OSPError e)
 static py::tuple 
 runtime_version()
 {
-    ospray::cpp::Device device = ospGetCurrentDevice();
+    ospray::cpp::Device device(ospGetCurrentDevice());
     
     return py::make_tuple(
         ospDeviceGetProperty(device.handle(), OSP_DEVICE_VERSION_MAJOR),
@@ -106,9 +106,9 @@ init(const std::vector<std::string>& args)
     
     // Set C++ wrappers for error and status callbacks
     
-    OSPDevice device = ospGetCurrentDevice();
-    ospDeviceSetErrorFunc(device, error_func);
-    ospDeviceSetStatusFunc(device, status_func);
+    ospray::cpp::Device device(ospGetCurrentDevice());
+    ospDeviceSetErrorFunc(device.handle(), error_func);
+    ospDeviceSetStatusFunc(device.handle(), status_func);
     
     /*
     py::tuple rt_version = runtime_version();

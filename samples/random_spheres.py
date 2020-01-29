@@ -36,6 +36,9 @@ device.commit()
 N = 50000
 if len(argv) > 1:
     N = int(argv[1])
+    if len(argv) >= 3:
+        W = int(argv[2])
+        H = int(argv[3])
 
 camera = ospray.Camera('perspective')
 camera.set_param('aspect', W/H)

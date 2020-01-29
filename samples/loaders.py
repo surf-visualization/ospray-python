@@ -210,3 +210,86 @@ def read_obj(fname, force_subdivision_mesh=False):
         
         
         
+def read_pdb(fname, radius=1):
+    """Bare-bones pdb reader, ATOM only"""
+    
+    COLORS = {
+        'H' : (0xff, 0xff, 0xff),
+        'C' : (0x00, 0x00, 0x00),
+        'N' : (0x22, 0x33, 0xff),
+        'O' : (0xff, 0x20, 0x00),
+        'CL': (0x1f, 0xf0, 0x1f),
+        'F' : (0x1f, 0xf0, 0x1f),
+        'BR': (0x99, 0x22, 0x00),
+        'I' : (0x66, 0x00, 0xbb),
+        'HE': (0x00, 0xff, 0xff),
+        'NE': (0x00, 0xff, 0xff),
+        'AR': (0x00, 0xff, 0xff),
+        'XE': (0x00, 0xff, 0xff),
+        'KR': (0x00, 0xff, 0xff),
+        'P' : (0xff, 0x99, 0x00),
+        'S' : (0xff, 0xe5, 0x22),
+        'B' : (0xff, 0xaa, 0x77),
+        
+        'TI': (0x99, 0x99, 0x99),
+        'FE': (0xdd, 0x77, 0x00),
+        
+    }
+        
+    with open(fname, 'rt') as f:
+        
+        positions = []
+        radii = []
+        colors = []
+        
+        N = 0
+        for line in f:
+            if not line.startswith('ATOM '):
+                continue
+                
+            x = float(line[30:38])
+            y = float(line[38:46])
+            z = float(line[46:54])
+            element = line[76:78].strip()
+                        
+            positions.append((x, y, z))      
+            
+            if element in COLORS:
+                hexcol = COLORS[element]
+            else:
+                hexcol = (0xdd, 0x77, 0xff)
+                if element != '':
+                    print('No color for element %s' % element)
+                    
+            colors.append((hexcol[0]/255, hexcol[1]/255, hexcol[2]/255))
+                
+            radii.append(radius)
+            
+            N += 1
+            
+        positions = numpy.array(positions, numpy.float32)
+        radii = numpy.array(radii, numpy.float32)
+        
+        colors = numpy.array(colors, numpy.float32)
+        #print(colors.shape, numpy.min(colors), numpy.max(colors))
+        opacities = numpy.ones(N, 'float32')
+        colors = numpy.c_[ colors, opacities ]
+        
+        positions[:9].tofile('pos9.bin')
+        colors[:9].tofile('col9.bin')
+        radii[:9].tofile('radii9.bin')
+        
+        assert positions.shape[0] == colors.shape[0]
+
+        spheres = ospray.Geometry('sphere')
+        spheres.set_param('sphere.position', ospray.data_constructor_vec(positions))
+        spheres.set_param('sphere.radius', ospray.data_constructor(radii))
+        spheres.commit()
+        
+        gmodel = ospray.GeometricModel(spheres)
+        gmodel.set_param('color', ospray.data_constructor_vec(colors))
+        gmodel.commit()
+        
+        
+        return gmodel
+

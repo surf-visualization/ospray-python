@@ -1,15 +1,16 @@
 #!/usr/bin/env python
-import sys, getopt, os
+import sys, getopt, math, os
 scriptdir = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.join(scriptdir, '..'))
 
 import numpy
 from PIL import Image
 import ospray
-from loaders import read_ply, read_obj, read_stl
+from loaders import read_ply, read_obj, read_stl, read_pdb
 
 W = 1024
 H = 768
+FOVY = 45.0
 
 argv = ospray.init(sys.argv)
 
@@ -82,21 +83,28 @@ elif ext in ['.obj', '.OBJ']:
     meshes = read_obj(fname, force_subdivision_mesh)
 elif ext == '.stl':
     meshes = read_stl(fname, force_subdivision_mesh)
+elif ext == '.pdb':
+    meshes = read_pdb(fname)
 else:
     raise ValueError('Unknown extension %s' % ext)
-
-gmodels = []
-for mesh in meshes:
     
-    if force_subdivision_mesh:
-        mesh.set_param('level', subvision_level)
-    
-    gmodel = ospray.GeometricModel(mesh)
-    if material is not None:
-        gmodel.set_param('material', material)
-    gmodel.commit()
-    
-    gmodels.append(gmodel)
+if isinstance(meshes, ospray.GeometricModel):
+    meshes.set_param('material', material)
+    meshes.commit()
+    gmodels = [meshes]
+else:
+    gmodels = []
+    for mesh in meshes:
+        
+        if force_subdivision_mesh:
+            mesh.set_param('level', subvision_level)
+        
+        gmodel = ospray.GeometricModel(mesh)
+        if material is not None:
+            gmodel.set_param('material', material)
+        gmodel.commit()
+        
+        gmodels.append(gmodel)
     
 if len(gmodels) == 0:
     print('No models to render!')
@@ -107,26 +115,6 @@ print('Have %d meshes' % len(gmodels))
 group = ospray.Group()
 group.set_param('geometry', gmodels)
 group.commit()
-
-bound = group.get_bounds()
-bound = numpy.array(bound, dtype=numpy.float32).reshape((-1, 3))
-print(bound)
-
-center = 0.5*(bound[0] + bound[1])
-print(center)
-    
-position = center + 3*(bound[1] - center)
-
-cam_pos = tuple(position.tolist())
-cam_up = (0.0, 0, 1)
-cam_view = tuple((center - position).tolist())
-
-camera = ospray.Camera('perspective')
-camera.set_param('aspect', W/H)
-camera.set_param('position', cam_pos)
-camera.set_param('direction', cam_view)
-camera.set_param('up', cam_up)
-camera.commit()
 
 instance1 = ospray.Instance(group)
 instance1.set_param('xfm', ospray.affine3f.identity())
@@ -156,7 +144,6 @@ light1.set_param('intensity', 0.4)
 light1.commit()
 
 light2 = ospray.Light('distant')
-light2.set_param('direction', cam_view)
 light2.set_param('intensity', 0.6)
 light2.commit()
 
@@ -166,6 +153,39 @@ world.set_param('light', lights)
 world.commit()
 print('World bound', world.get_bounds())
 
+# Camera
+bound = world.get_bounds()
+bound = numpy.array(bound, dtype=numpy.float32).reshape((-1, 3))
+print('BOUND', bound[0], bound[1])
+
+diagonal = numpy.linalg.norm(bound[1] - bound[0])
+radius = 0.5*diagonal
+distance = radius / math.sin(0.5*math.radians(FOVY)) * 1.05
+print('diagonal', diagonal)
+print('radius', radius)
+print('distance', distance)
+
+center = 0.5*(bound[0] + bound[1])
+position = center - distance/math.sqrt(3)*numpy.array([-1,-1,-1],'float32')
+
+cam_pos = tuple(position.tolist())
+cam_up = (0.0, 0, 1)
+cam_view = tuple((center - position).tolist())
+
+print('pos', cam_pos, 'cam_view', cam_view, 'cam_up', cam_up)
+
+camera = ospray.Camera('perspective')
+camera.set_param('aspect', W/H)
+camera.set_param('position', cam_pos)
+camera.set_param('direction', cam_view)
+camera.set_param('up', cam_up)
+camera.set_param('fovy', FOVY)
+camera.commit()
+
+light2.set_param('direction', cam_view)
+light2.commit()
+
+# Render
 renderer = ospray.Renderer(renderer_type)
 renderer.set_param('backgroundColor', (1.0, 1, 1, 1))
 if renderer_type == 'debug':
