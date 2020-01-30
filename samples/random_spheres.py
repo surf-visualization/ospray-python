@@ -9,8 +9,8 @@ import ospray
 
 W = 1024
 H = 1024
-S = 8
-RENDERER = 'scivis'
+S = 16
+RENDERER = 'pathtracer'
 
 cam_pos = (0.5, 0.5, 3.0)
 cam_up = (0.0, 1.0, 0.0)
@@ -79,14 +79,48 @@ instance = ospray.Instance(group)
 instance.commit()
 
 if RENDERER == 'pathtracer':
+    materials = []
+
+    material = ospray.Material(RENDERER, 'obj')
+    material.set_param('ns', 0.0)
+    material.set_param('d', 0.5)
+    material.commit()
+    materials.append(material)
+    
     material = ospray.Material(RENDERER, 'principled')
     material.set_param('metallic', 0.)
     material.commit()
+    materials.append(material)
+    
+    material = ospray.Material(RENDERER, 'alloy')
+    material.set_param('edgeColor', (1.0,1,1))
+    material.commit()
+    materials.append(material)    
+
+    material = ospray.Material(RENDERER, 'glass')
+    material.commit()
+    materials.append(material)    
+
+    material = ospray.Material(RENDERER, 'metallicPaint')
+    material.commit()
+    materials.append(material)    
+
+    # XXX doesn't seem to illuminate the scene?
+    #material = ospray.Material(RENDERER, 'luminous')
+    #material.set_param('intensity', 0.25)
+    #material.commit()
+    #materials.append(material)    
 else:
     material = ospray.Material(RENDERER, 'obj')
     material.commit()
+    materials = [material]
     
-gmodel.set_param('material', material)
+if len(materials) == 1:
+    gmodel.set_param('material', material)        
+else:
+    mindices = numpy.random.randint(0, len(materials), N, dtype='uint32')
+    print(numpy.min(mindices), numpy.max(mindices))
+    gmodel.set_param('material', ospray.data_constructor(mindices, True))
 gmodel.commit()
 
 world = ospray.World()
@@ -111,6 +145,8 @@ world.commit()
 renderer = ospray.Renderer(RENDERER)
 renderer.set_param('backgroundColor', (1.0, 1.0, 1.0, 1.0))
 renderer.set_param('maxPathLength', 1000)
+if len(materials) > 1:
+    renderer.set_param('material', materials)
 renderer.commit()
 
 format = ospray.OSP_FB_SRGBA
