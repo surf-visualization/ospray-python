@@ -810,9 +810,9 @@ PYBIND11_MODULE(ospray, m)
         .def(py::init<const std::string &>(), py::arg("type")="default")
         //.def("handle", &ospray::cpp::Device::handle)      // Leads to incomplete type 'osp::Device' used in type trait expression
         .def("commit", &ospray::cpp::Device::commit)
-        .def("set", (void (ospray::cpp::Device::*)(const std::string &, const std::string &) const) &ospray::cpp::Device::set)
-        .def("set", (void (ospray::cpp::Device::*)(const std::string &, bool) const) &ospray::cpp::Device::set)
-        .def("set", (void (ospray::cpp::Device::*)(const std::string &, int) const) &ospray::cpp::Device::set)
+        .def("set_param", (void (ospray::cpp::Device::*)(const std::string &, const std::string &) const) &ospray::cpp::Device::setParam)
+        .def("set_param", &ospray::cpp::Device::setParam<bool>)
+        .def("set_param", &ospray::cpp::Device::setParam<int>)
         //void set(const std::string &name, void *v) const;
     ;
     
@@ -961,6 +961,7 @@ PYBIND11_MODULE(ospray, m)
     m.def("version", &runtime_version);
 
     // Define testing submodule
+    // XXX commented out for now
     define_testing(m);
 }
 

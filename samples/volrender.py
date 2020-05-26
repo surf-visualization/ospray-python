@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# E.g.
+# ./samples/volrender.py -s 1,1,2 -d 256,256,84 -v 0,255 -t ~/models/brain/carnival.trn ~/models/brain/brain256_256_84_8.raw 
+# ./samples/volrender.py -i 128 -s 1,1,2 -d 256,256,84 -v 0,255 -t ~/models/brain/carnival.trn ~/models/brain/brain256_256_84_8.raw 
 import sys, getopt, os, time
 scriptdir = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.join(scriptdir, '..'))
@@ -9,8 +12,8 @@ import ospray
 
 t0 = time.time()
 
-W = 1920
-H = 1080
+W = 960
+H = 540
 
 RENDERER = 'scivis'
 
@@ -41,9 +44,9 @@ ospray.set_error_func(error_callback)
 ospray.set_status_func(status_callback)
 
 device = ospray.get_current_device()
-device.set('logLevel', 1)
-#device.set('logOutput', 'cerr')
-#device.set('errorOutput', 'cerr')
+device.set_param('logLevel', 1)
+#device.set_param('logOutput', 'cerr')
+#device.set_param('errorOutput', 'cerr')
 device.commit()
 
 # Parse arguments
@@ -56,7 +59,7 @@ def usage():
     print(' -d xdim,ydim,zdim               .raw file dimensions')
     print(' -D dataset_name                 HDF5 dataset name')
     print(' -f axis,minidx,maxidx,value     Fill part of the volume with a specific value')
-    print(' -g                              Simple gradual TF')
+    print(' -t <default>|<linear>|<file.trn> Set transfer function')
     print(' -i isovalue                     Render as isosurface instead of volume')
     print(' -I width,height                 Image resolution')
     print(' -p                              Use pathtracer (default: use scivis renderer)')
@@ -70,7 +73,8 @@ anisotropy = 0.0
 bgcolor = (1.0, 1.0, 1.0, 1.0)
 dimensions = None
 dataset_name = None
-gradual_tf = False
+tf_mode = 'default'
+tf_file = None
 image_file = 'volume.png'
 isovalue = None
 grid_spacing = numpy.ones(3, dtype=numpy.float32)
@@ -79,9 +83,8 @@ set_value = None
 value_range = None
 display_result = False
 
-
 try:
-    optlist, args = getopt.getopt(argv[1:], 'a:b:d:D:f:gi:I:o:ps:S:t:v:x')
+    optlist, args = getopt.getopt(argv[1:], 'a:b:d:D:f:i:I:o:ps:S:t:v:x')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -105,8 +108,6 @@ for o, a in optlist:
         pp = a.split(',')
         assert len(pp) == 4
         set_value = (int(pp[0]), int(pp[1]), int(pp[2]), float(pp[3]))     
-    elif o == '-g':
-        gradual_tf = True
     elif o == '-i':
         isovalue = float(a)
     elif o == '-I':
@@ -121,6 +122,13 @@ for o, a in optlist:
         grid_spacing = numpy.array(grid_spacing, dtype=numpy.float32)
     elif o == '-S':
         samples = int(a)
+    elif o == '-t':
+        if os.path.isfile(a):
+            tf_mode = 'file'
+            tf_file = a
+        else:
+            assert a in ['default', 'gradual']
+            tf_mode = a
     elif o == '-v':
         value_range = tuple(map(float, a.split(',')))
     elif o == '-x':
@@ -243,12 +251,30 @@ if isovalue is not None:
     tfcolors = numpy.array([[0.8, 0.8, 0.8]], dtype=numpy.float32)
     tfopacities = numpy.array([1], dtype=numpy.float32)
     
-elif gradual_tf:
-    # Simple gradual TF
+elif tf_mode == 'file':
+    # Read a .trn file, lines of the form
+    # <value> <r> <g> <b> <o>
+    # All values in [0,255]
+    # XXX only works for volume values in [0,255], as the -v option is not taken into account
+    lines = [l.strip() for l in open(tf_file, 'rt').readlines() if l.strip() != '']
+    
+    N = len(lines)
+    assert N == 256
+    
+    tfcolors = numpy.zeros((N,3), dtype=numpy.float32)
+    tfopacities = numpy.zeros(N, dtype=numpy.float32)
+    
+    for idx, line in enumerate(lines):
+        pp = list(map(int, line.split()))
+        tfcolors[idx] = pp[1]/255, pp[2]/255, pp[3]/255
+        tfopacities[idx] = pp[4]/255
+    
+elif tf_mode == 'linear':
+    # Simple linear TF
     tfcolors = numpy.array([[0, 0, 0], [0, 0, 1]], dtype=numpy.float32)
     tfopacities = numpy.array([0, 1], dtype=numpy.float32)
     
-else:
+elif tf_mode == 'default':
     # Generate equidistant TF from sparse specification
     tfcolors = numpy.zeros((T,3), dtype=numpy.float32)
     tfopacities = numpy.zeros(T, dtype=numpy.float32)

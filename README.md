@@ -7,7 +7,7 @@ method of setting object parameters in OSPRay these are supported
 on all objects as well. But see the notes on data type mapping
 below.
 
-Note that this code is targeted at the 2.0.x branch of OSPRay.
+Note that this code is targeted at the 2.1.x branch of OSPRay.
 
 These bindings started just to try out [pybind11](https://github.com/pybind/pybind11),
 but they have quickly become pretty useful, as Pybind11 is an amazing little

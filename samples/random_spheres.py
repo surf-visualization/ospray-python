@@ -30,7 +30,7 @@ ospray.set_error_func(error_callback)
 ospray.set_status_func(status_callback)
 
 device = ospray.get_current_device()
-device.set('logLevel', 1)
+device.set_param('logLevel', 1)
 device.commit()
 
 N = 50000
