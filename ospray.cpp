@@ -961,7 +961,6 @@ PYBIND11_MODULE(ospray, m)
     m.def("version", &runtime_version);
 
     // Define testing submodule
-    // XXX commented out for now
     define_testing(m);
 }
 
