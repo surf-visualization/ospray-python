@@ -9,6 +9,22 @@ namespace py = pybind11;
 inline void 
 define_enums(py::module& m)
 {
+    py::enum_<OSPCurveType>(m, "OSPCurveType")
+        .value("OSP_FLAT", OSPCurveType::OSP_FLAT)
+        .value("OSP_ROUND", OSPCurveType::OSP_ROUND)
+        .value("OSP_RIBBON", OSPCurveType::OSP_RIBBON)
+        .export_values()
+    ;
+    
+    py::enum_<OSPCurveBasis>(m, "OSPCurveBasis")
+        .value("OSP_LINEAR", OSPCurveBasis::OSP_LINEAR)
+        .value("OSP_BEZIER", OSPCurveBasis::OSP_BEZIER)
+        .value("OSP_BSPLINE", OSPCurveBasis::OSP_BSPLINE)
+        .value("OSP_HERMITE", OSPCurveBasis::OSP_HERMITE)
+        .value("OSP_CATMULL_ROM", OSPCurveBasis::OSP_CATMULL_ROM)
+        .export_values()
+    ;     
+    
     py::enum_<OSPDataType>(m, "OSPDataType")
         .value("OSP_DEVICE", OSPDataType::OSP_DEVICE)
         .value("OSP_VOID_PTR", OSPDataType::OSP_VOID_PTR)
