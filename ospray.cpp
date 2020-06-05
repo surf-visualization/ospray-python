@@ -31,11 +31,18 @@ typedef ospray::cpp::ManagedObject<OSPWorld, OSP_WORLD>                     Mana
 static py::function py_error_func;
 static py::function py_status_func;
 
+// As we unconditionally override the OSPRay default status and error handlers
+// in init() we need to handle the situation where no Python-level handlers are set.
+// Produce output on stdout directly in those cases, as otherwise there will be
+// no output, nor any way to get output.
+
 static void
 error_func(OSPError error, const char *details)
 {
     if (py_error_func)
         py_error_func(error, details);
+    else
+        printf("OSPRAY ERROR: %d (%s)\n", error, details);
 }
 
 static void
@@ -43,6 +50,8 @@ status_func(const char *message)
 {
     if (py_status_func)
         py_status_func(message);
+    else
+        printf("OSPRAY STATUS: %s\n", message);    
 }
 
 static void
