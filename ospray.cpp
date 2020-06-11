@@ -587,6 +587,8 @@ set_param_list(T &self, const std::string &name, const py::list &values)
         self.setParam(name, build_data_from_list<ospray::cpp::Instance>(listcls, values));
     else if (listcls == "Light")
         self.setParam(name, build_data_from_list<ospray::cpp::Light>(listcls, values));
+    else if (listcls == "Material")
+        self.setParam(name, build_data_from_list<ospray::cpp::Material>(listcls, values));
     else if (listcls == "VolumetricModel")
         self.setParam(name, build_data_from_list<ospray::cpp::VolumetricModel>(listcls, values));
     else
