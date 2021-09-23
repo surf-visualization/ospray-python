@@ -1,5 +1,5 @@
 #!/bin/sh
-OSPRAY_DIR=$HOME/software/ospray-superbuild-git
+OSPRAY_DIR=$HOME/software/ospray-2.7.0.x86_64.linux
 
 g++ \
     -O3 -W -Wall \

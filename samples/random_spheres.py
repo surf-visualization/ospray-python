@@ -26,8 +26,8 @@ def error_callback(error, details):
 def status_callback(message):
     print('OSPRAY STATUS: %s' % message)
     
-ospray.set_error_func(error_callback)
-ospray.set_status_func(status_callback)
+ospray.set_error_callback(error_callback)
+ospray.set_status_callback(status_callback)
 
 device = ospray.get_current_device()
 device.set_param('logLevel', 1)
@@ -61,14 +61,14 @@ assert(numpy.min(colors) >= 0.3)
 #colors = numpy.tile(numpy.array([1,0,0,1],'float32'), (N,1))
 
 spheres = ospray.Geometry('sphere')
-spheres.set_param('sphere.position', ospray.data_constructor_vec(positions, True))
-spheres.set_param('sphere.radius', ospray.data_constructor(radii, True))
+spheres.set_param('sphere.position', ospray.shared_data_constructor_vec(positions))
+spheres.set_param('sphere.radius', ospray.shared_data_constructor(radii))
 spheres.commit()
 
 gmodel = ospray.GeometricModel(spheres)
 # XXX sometimes segfault, plus some spheres are black which should not be possible given
 # the colors set
-gmodel.set_param('color', ospray.data_constructor_vec(colors))
+gmodel.set_param('color', ospray.shared_data_constructor_vec(colors))
 gmodel.commit()
 
 group = ospray.Group()
@@ -116,7 +116,7 @@ renderer.commit()
 format = ospray.OSP_FB_SRGBA
 channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) 
 
-framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer = ospray.FrameBuffer(W, H, format, channels)
 framebuffer.clear()
 
 for frame in range(S):

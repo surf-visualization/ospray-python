@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+BROKEN
+Needs affine3
+"""
+
 import sys, getopt, math, os
 scriptdir = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.join(scriptdir, '..'))
@@ -22,8 +27,8 @@ def error_callback(error, details):
 def status_callback(message):
     print('OSPRAY STATUS: %s' % message)
     
-ospray.set_error_func(error_callback)
-ospray.set_status_func(status_callback)
+ospray.set_error_callback(error_callback)
+ospray.set_status_callback(status_callback)
 
 device = ospray.get_current_device()
 device.set_param('logLevel', 1)
@@ -124,11 +129,11 @@ instances = [instance1]
 
 if False:
     instance2 = ospray.Instance(group)
-    instance2.set_param('xfm', ospray.affine3f.translate((1,0,0)))
+    instance2.set_param('transform', ospray.affine3f.translate((1,0,0)))
     instance2.commit()
 
     instance3 = ospray.Instance(group)
-    instance3.set_param('xfm', 
+    instance3.set_param('transform', 
         ospray.affine3f.translate((0,1,0)) * ospray.affine3f.rotate((0,0,1), 90)
         )
     instance3.commit()
@@ -195,7 +200,7 @@ renderer.commit()
 format = ospray.OSP_FB_SRGBA
 channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_FB_DEPTH) | int(ospray.OSP_FB_VARIANCE) | int(ospray.OSP_FB_NORMAL) | int(ospray.OSP_FB_ALBEDO)
 
-framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer = ospray.FrameBuffer(W, H, format, channels)
 framebuffer.clear()
 
 for frame in range(samples):

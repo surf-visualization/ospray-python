@@ -42,9 +42,11 @@ camera.set_param('up', cam_up)
 camera.commit()
 
 mesh = ospray.Geometry('mesh')
-mesh.set_param('vertex.position', ospray.data_constructor_vec(vertex))
-mesh.set_param('vertex.color', ospray.data_constructor_vec(color))
-mesh.set_param('index', ospray.data_constructor_vec(index))
+data = ospray.copied_data_constructor_vec(vertex)
+print(data)
+mesh.set_param('vertex.position', data)
+mesh.set_param('vertex.color', ospray.copied_data_constructor_vec(color))
+mesh.set_param('index', ospray.copied_data_constructor_vec(index))
 mesh.commit()
 
 gmodel = ospray.GeometricModel(mesh)
@@ -82,7 +84,7 @@ renderer.commit()
 format = ospray.OSP_FB_SRGBA
 channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_FB_DEPTH) | int(ospray.OSP_FB_VARIANCE)
 
-framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer = ospray.FrameBuffer(W, H, format, channels)
 framebuffer.clear()
 
 for frame in range(8):
@@ -90,7 +92,7 @@ for frame in range(8):
     future.wait()
     print('[%d] %.6f' % (frame, framebuffer.get_variance()))
     
-res = framebuffer.pick(renderer, camera, world, (0.5, 0.5))
+res = framebuffer.pick(renderer, camera, world, 0.5, 0.5)
 if res.has_hit:
     print('pick world pos', res.world_position)
     print('pick instance', res.instance)

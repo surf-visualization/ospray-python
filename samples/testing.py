@@ -40,8 +40,8 @@ def error_callback(error, details):
 def status_callback(message):
     print('OSPRAY STATUS: %s' % message)
     
-ospray.set_error_func(error_callback)
-ospray.set_status_func(status_callback)
+ospray.set_error_callback(error_callback)
+ospray.set_status_callback(status_callback)
 
 device = ospray.get_current_device()
 device.set_param('logLevel', 1)
@@ -114,7 +114,7 @@ renderer.commit()
 format = ospray.OSP_FB_SRGBA
 channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_FB_DEPTH) | int(ospray.OSP_FB_VARIANCE)
 
-framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer = ospray.FrameBuffer(W, H, format, channels)
 framebuffer.clear()
 
 for frame in range(samples):

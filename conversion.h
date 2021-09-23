@@ -2,15 +2,15 @@
 #define CONVERSION_H
 
 #include <pybind11/pybind11.h>
-#include "ospcommon/math/AffineSpace.h"
+#include "vec.h"
 
 namespace pybind11 { namespace detail {
     
     // vec234f
     
-    template <> struct type_caster<ospcommon::math::vec2f> {
+    template <> struct type_caster<vec2f> {
     public:
-        PYBIND11_TYPE_CASTER(ospcommon::math::vec2f, _("ospcommon::math::vec2f"));
+        PYBIND11_TYPE_CASTER(vec2f, _("vec2f"));
 
         // Conversion part 1 (Python -> C++)
         bool load(handle src, bool) 
@@ -29,15 +29,15 @@ namespace pybind11 { namespace detail {
         }
 
         // Conversion part 2 (C++ -> Python)
-        static handle cast(const ospcommon::math::vec2f& src, return_value_policy /* policy */, handle /* parent */) 
+        static handle cast(const vec2f& src, return_value_policy /* policy */, handle /* parent */) 
         {
             return Py_BuildValue("ff", src.x, src.y);
         }
     };
         
-    template <> struct type_caster<ospcommon::math::vec3f> {
+    template <> struct type_caster<vec3f> {
     public:        
-        PYBIND11_TYPE_CASTER(ospcommon::math::vec3f, _("ospcommon::math::vec3f"));
+        PYBIND11_TYPE_CASTER(vec3f, _("vec3f"));
 
         // Conversion part 1 (Python -> C++)
         bool load(handle src, bool) 
@@ -58,15 +58,15 @@ namespace pybind11 { namespace detail {
         }
 
         // Conversion part 2 (C++ -> Python)
-        static handle cast(const ospcommon::math::vec3f& src, return_value_policy /* policy */, handle /* parent */) 
+        static handle cast(const vec3f& src, return_value_policy /* policy */, handle /* parent */) 
         {
             return Py_BuildValue("fff", src.x, src.y, src.z);
         }
     };
 
-    template <> struct type_caster<ospcommon::math::vec4f> {
+    template <> struct type_caster<vec4f> {
     public:        
-        PYBIND11_TYPE_CASTER(ospcommon::math::vec4f, _("ospcommon::math::vec4f"));
+        PYBIND11_TYPE_CASTER(vec4f, _("vec4f"));
 
         // Conversion part 1 (Python -> C++)
         bool load(handle src, bool) 
@@ -88,7 +88,7 @@ namespace pybind11 { namespace detail {
         }
 
         // Conversion part 2 (C++ -> Python)
-        static handle cast(const ospcommon::math::vec4f& src, return_value_policy /* policy */, handle /* parent */) 
+        static handle cast(const vec4f& src, return_value_policy /* policy */, handle /* parent */) 
         {
             return Py_BuildValue("ffff", src.x, src.y, src.z, src.w);
         }
@@ -96,9 +96,9 @@ namespace pybind11 { namespace detail {
 
     // vec234i
     
-    template <> struct type_caster<ospcommon::math::vec2i> {
+    template <> struct type_caster<vec2i> {
     public:
-        PYBIND11_TYPE_CASTER(ospcommon::math::vec2i, _("ospcommon::math::vec2i"));
+        PYBIND11_TYPE_CASTER(vec2i, _("vec2i"));
 
         // Conversion part 1 (Python -> C++)
         bool load(handle src, bool) 
@@ -117,15 +117,15 @@ namespace pybind11 { namespace detail {
         }
 
         // Conversion part 2 (C++ -> Python)
-        static handle cast(const ospcommon::math::vec2i& src, return_value_policy /* policy */, handle /* parent */) 
+        static handle cast(const vec2i& src, return_value_policy /* policy */, handle /* parent */) 
         {
             return Py_BuildValue("ii", src.x, src.y);
         }
     };
         
-    template <> struct type_caster<ospcommon::math::vec3i> {
+    template <> struct type_caster<vec3i> {
     public:        
-        PYBIND11_TYPE_CASTER(ospcommon::math::vec3i, _("ospcommon::math::vec3i"));
+        PYBIND11_TYPE_CASTER(vec3i, _("vec3i"));
 
         // Conversion part 1 (Python -> C++)
         bool load(handle src, bool) 
@@ -146,15 +146,15 @@ namespace pybind11 { namespace detail {
         }
 
         // Conversion part 2 (C++ -> Python)
-        static handle cast(const ospcommon::math::vec3i& src, return_value_policy /* policy */, handle /* parent */) 
+        static handle cast(const vec3i& src, return_value_policy /* policy */, handle /* parent */) 
         {
             return Py_BuildValue("iii", src.x, src.y, src.z);
         }
     };
 
-    template <> struct type_caster<ospcommon::math::vec4i> {
+    template <> struct type_caster<vec4i> {
     public:        
-        PYBIND11_TYPE_CASTER(ospcommon::math::vec4i, _("ospcommon::math::vec4i"));
+        PYBIND11_TYPE_CASTER(vec4i, _("vec4i"));
 
         // Conversion part 1 (Python -> C++)
         bool load(handle src, bool) 
@@ -176,7 +176,7 @@ namespace pybind11 { namespace detail {
         }
 
         // Conversion part 2 (C++ -> Python)
-        static handle cast(const ospcommon::math::vec4i& src, return_value_policy /* policy */, handle /* parent */) 
+        static handle cast(const vec4i& src, return_value_policy /* policy */, handle /* parent */) 
         {
             return Py_BuildValue("iiii", src.x, src.y, src.z, src.w);
         }

@@ -50,8 +50,8 @@ def error_callback(error, details):
 def status_callback(message):
     print('OSPRAY STATUS: %s' % message)
     
-ospray.set_error_func(error_callback)
-ospray.set_status_func(status_callback)
+ospray.set_error_callback(error_callback)
+ospray.set_status_callback(status_callback)
 
 device = ospray.get_current_device()
 device.set_param('logLevel', 1)
@@ -68,10 +68,10 @@ camera.set_param('up', cam_up)
 camera.commit()
 
 mesh = ospray.Geometry('mesh')
-mesh.set_param('vertex.position', ospray.data_constructor_vec(vertex))
-mesh.set_param('vertex.texcoord', ospray.data_constructor_vec(texcoord))
-#mesh.set_param('vertex.color', ospray.data_constructor_vec(color))
-mesh.set_param('index', ospray.data_constructor_vec(index))
+mesh.set_param('vertex.position', ospray.copied_data_constructor_vec(vertex))
+mesh.set_param('vertex.texcoord', ospray.copied_data_constructor_vec(texcoord))
+#mesh.set_param('vertex.color', ospray.copied_data_constructor_vec(color))
+mesh.set_param('index', ospray.copied_data_constructor_vec(index))
 mesh.commit()
 
 gmodel = ospray.GeometricModel(mesh)
@@ -96,19 +96,19 @@ if False:
     pixels[..., 0] = checker
     pixels[..., 1] = checker
     pixels[..., 2] = checker
-    data = ospray.data_constructor_vec(pixels)
+    data = ospray.copied_data_constructor_vec(pixels)
     format = ospray.OSP_TEXTURE_RGB8
     # XXX segfault
     #filter = ospray.OSP_TEXTURE_FILTER_NEAREST
 elif False:
     pixels = numpy.random.rand(TW,TH,3).astype(numpy.float32)
     format = ospray.OSP_TEXTURE_RGB32F
-    data = ospray.data_constructor_vec(pixels)
+    data = ospray.copied_data_constructor_vec(pixels)
 elif True:
     img = Image.open(os.path.join(scriptdir, 'teaser_materials.jpg'))
     img = img.transpose(Image.FLIP_TOP_BOTTOM)
     pixels = numpy.array(img)
-    data = ospray.data_constructor_vec(pixels)
+    data = ospray.copied_data_constructor_vec(pixels)
     format = ospray.OSP_TEXTURE_RGB8
     
 texture = ospray.Texture('texture2d')
@@ -142,7 +142,7 @@ renderer.commit()
 format = ospray.OSP_FB_SRGBA
 channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) #| int(ospray.OSP_FB_DEPTH) | int(ospray.OSP_FB_VARIANCE)
 
-framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer = ospray.FrameBuffer(W, H, format, channels)
 framebuffer.clear()
 
 future = framebuffer.render_frame(renderer, camera, world)

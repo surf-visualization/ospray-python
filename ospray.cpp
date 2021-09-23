@@ -6,7 +6,7 @@
 #include <ospray/version.h>
 #include "enums.h"
 #include "conversion.h"
-#include "testing.h"
+//#include "testing.h"
 
 namespace py = pybind11;
 
@@ -28,8 +28,8 @@ typedef ospray::cpp::ManagedObject<OSPVolume, OSP_VOLUME>                   Mana
 typedef ospray::cpp::ManagedObject<OSPVolumetricModel, OSP_VOLUMETRIC_MODEL> ManagedVolumetricModel;
 typedef ospray::cpp::ManagedObject<OSPWorld, OSP_WORLD>                     ManagedWorld;
 
-static py::function py_error_func;
-static py::function py_status_func;
+static py::function py_error_callback;
+static py::function py_status_callback;
 
 // As we unconditionally override the OSPRay default status and error handlers
 // in init() we need to handle the situation where no Python-level handlers are set.
@@ -37,19 +37,19 @@ static py::function py_status_func;
 // no output, nor any way to get output.
 
 static void
-error_func(OSPError error, const char *details)
+error_func(void* /*userdata*/, OSPError error, const char *details)
 {
-    if (py_error_func)
-        py_error_func(error, details);
+    if (py_error_callback)
+        py_error_callback(error, details);
     else
         printf("OSPRAY ERROR: %d (%s)\n", error, details);
 }
 
 static void
-status_func(const char *message)
+status_func(void* /*userdata*/, const char *message)
 {
-    if (py_status_func)
-        py_status_func(message);
+    if (py_status_callback)
+        py_status_callback(message);
     else
         printf("OSPRAY STATUS: %s\n", message);    
 }
@@ -116,8 +116,8 @@ init(const std::vector<std::string>& args)
     // Set C++ wrappers for error and status callbacks
     
     ospray::cpp::Device device(ospGetCurrentDevice());
-    ospDeviceSetErrorFunc(device.handle(), error_func);
-    ospDeviceSetStatusFunc(device.handle(), status_func);
+    ospDeviceSetErrorCallback(device.handle(), error_func, nullptr);
+    ospDeviceSetStatusCallback(device.handle(), status_func, nullptr);
     
     /*
     py::tuple rt_version = runtime_version();
@@ -152,58 +152,118 @@ print_array_info(const py::array &array)
     printf("), dtype kind '%c' itemsize %ld\n", dtype.kind(), dtype.itemsize());
 }
 
-ospray::cpp::Data
-data_from_numpy_array(const py::array& array, bool is_shared=false)
+ospray::cpp::CopiedData
+copied_data_from_numpy_array(const py::array& array)
 {
     const int ndim = array.ndim();
     
     if (ndim > 3)
     {
-        printf("ERROR: more than 3 dimensions not supported in data_from_numpy_array(): ");
+        printf("ERROR: more than 3 dimensions not supported in copied_data_from_numpy_array(): ");
         print_array_info(array);
         printf("\n");
-        return ospray::cpp::Data();
+        return ospray::cpp::CopiedData();
     }
     
     const py::dtype& dtype = array.dtype();
-    ospcommon::math::vec3ul num_items { 1, 1, 1 };
-    ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
-    
-    for (int i = 0; i < ndim; i++)
-        num_items[i] = array.shape(i);
-    
+    vec3ul num_items { 1, 1, 1 };
+    vec3ul byte_stride { 0, 0, 0 };
+
+    num_items.x = array.shape(0);
+    if (ndim >= 2)
+        num_items.y = array.shape(1);
+    if (ndim >= 3)
+        num_items.z = array.shape(2);
+        
     // https://github.com/pybind/pybind11/issues/563#issuecomment-267836074
     // Use 
     //  py::isinstance<py::array_t<std::int32_t>>(buf) 
     // instead of 
     //  buf.dtype() == pybind11::dtype::of<std::int32_t>()
-    
+
     if (py::isinstance<py::array_t<float>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (float*)array.data(), is_shared);
-    else if (py::isinstance<py::array_t<double>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (double*)array.data(), is_shared);
-    //else if (py::isinstance<py::array_t<int8_t>>(array))
-    //    return ospray::cpp::Data(num_items, byte_stride, (int8_t*)array.data(), is_shared);
+        return ospray::cpp::CopiedData(array.data(), OSP_FLOAT, num_items, byte_stride);
+    /*else if (py::isinstance<py::array_t<double>>(array))
+        return ospray::cpp::CopiedData(array.data(), OSP_DOUBLE, num_items, byte_stride);*/
+    /*else if (py::isinstance<py::array_t<int8_t>>(array))
+        return ospray::cpp::CopiedData(array.data(), OSP_CHAR, num_items, byte_stride);*/
     else if (py::isinstance<py::array_t<uint8_t>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (uint8_t*)array.data(), is_shared);
-    else if (py::isinstance<py::array_t<int16_t>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (int16_t*)array.data(), is_shared);
+        return ospray::cpp::CopiedData(array.data(), OSP_UCHAR, num_items, byte_stride);
+    /*else if (py::isinstance<py::array_t<int16_t>>(array))
+        return ospray::cpp::CopiedData(array.data(), ???, num_items, byte_stride);
     else if (py::isinstance<py::array_t<uint16_t>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (uint16_t*)array.data(), is_shared);
+        return ospray::cpp::CopiedData(array.data(), ???, num_items, byte_stride);*/
     else if (py::isinstance<py::array_t<int32_t>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (int32_t*)array.data(), is_shared);
+        return ospray::cpp::CopiedData(array.data(), OSP_INT, num_items, byte_stride);
     else if (py::isinstance<py::array_t<uint32_t>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (uint32_t*)array.data(), is_shared);
+        return ospray::cpp::CopiedData(array.data(), OSP_UINT, num_items, byte_stride);
     else if (py::isinstance<py::array_t<int64_t>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (int64_t*)array.data(), is_shared);
+        return ospray::cpp::CopiedData(array.data(), OSP_LONG, num_items, byte_stride);
     else if (py::isinstance<py::array_t<uint64_t>>(array))
-        return ospray::cpp::Data(num_items, byte_stride, (uint64_t*)array.data(), is_shared);
+        return ospray::cpp::CopiedData(array.data(), OSP_ULONG, num_items, byte_stride);
         
-    printf("WARNING: unhandled array in data_from_numpy_array(): ");
+    printf("WARNING: unhandled array in copied_data_from_numpy_array(): ");
     print_array_info(array);
     printf("\n");
     
-    return ospray::cpp::Data();
+    return ospray::cpp::CopiedData();
+}
+
+ospray::cpp::SharedData
+shared_data_from_numpy_array(const py::array& array)
+{
+    const int ndim = array.ndim();
+    
+    if (ndim > 3)
+    {
+        printf("ERROR: more than 3 dimensions not supported in shared_data_from_numpy_array(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::SharedData();
+    }
+    
+    const py::dtype& dtype = array.dtype();
+    vec3ul num_items { 1, 1, 1 };
+    vec3ul byte_stride { 0, 0, 0 };
+
+    num_items.x = array.shape(0);
+    if (ndim >= 2)
+        num_items.y = array.shape(1);
+    if (ndim >= 3)
+        num_items.z = array.shape(2);
+        
+    // https://github.com/pybind/pybind11/issues/563#issuecomment-267836074
+    // Use 
+    //  py::isinstance<py::array_t<std::int32_t>>(buf) 
+    // instead of 
+    //  buf.dtype() == pybind11::dtype::of<std::int32_t>()
+
+    if (py::isinstance<py::array_t<float>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_FLOAT, num_items, byte_stride);
+    /*else if (py::isinstance<py::array_t<double>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_DOUBLE, num_items, byte_stride);*/
+    /*else if (py::isinstance<py::array_t<int8_t>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_CHAR, num_items, byte_stride);*/
+    else if (py::isinstance<py::array_t<uint8_t>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_UCHAR, num_items, byte_stride);
+    /*else if (py::isinstance<py::array_t<int16_t>>(array))
+        return ospray::cpp::SharedData(array.data(), ???, num_items, byte_stride);
+    else if (py::isinstance<py::array_t<uint16_t>>(array))
+        return ospray::cpp::SharedData(array.data(), ???, num_items, byte_stride);*/
+    else if (py::isinstance<py::array_t<int32_t>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_INT, num_items, byte_stride);
+    else if (py::isinstance<py::array_t<uint32_t>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_UINT, num_items, byte_stride);
+    else if (py::isinstance<py::array_t<int64_t>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_LONG, num_items, byte_stride);
+    else if (py::isinstance<py::array_t<uint64_t>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_ULONG, num_items, byte_stride);
+        
+    printf("WARNING: unhandled array in shared_data_from_numpy_array(): ");
+    print_array_info(array);
+    printf("\n");
+    
+    return ospray::cpp::SharedData();
 }
 
 // Turn a numpy array of shape (..., 2|3|4) into a Data object of
@@ -218,100 +278,202 @@ data_from_numpy_array(const py::array& array, bool is_shared=false)
     typedef vec_t<float, 4> vec4f;
     typedef vec_t<double, 4> vec4d;
 */
-ospray::cpp::Data
-data_from_numpy_array_vec(const py::array& array, bool is_shared=false)
+ospray::cpp::CopiedData
+copied_data_from_numpy_array_vec(const py::array& array)
 {
     const int ndim = array.ndim();
     
     if (ndim > 3)
     {
-        printf("ERROR: more than 3 dimensions not supported in data_from_numpy_array_vec(): ");
+        printf("ERROR: more than 3 dimensions not supported in copied_data_from_numpy_array_vec(): ");
         print_array_info(array);
         printf("\n");
-        return ospray::cpp::Data();
+        return ospray::cpp::CopiedData();
     }
     
     const int vecdim = array.shape(ndim-1);
     
     if (vecdim < 2 || vecdim > 4)
     {
-        printf("ERROR: last dimension needs to be in range 2-4 in data_from_numpy_array_vec(): ");
+        printf("ERROR: last dimension needs to be in range 2-4 in copied_data_from_numpy_array_vec(): ");
         print_array_info(array);
         printf("\n");
-        return ospray::cpp::Data();
+        return ospray::cpp::CopiedData();
     }
-    
+
     const py::dtype& dtype = array.dtype();
-    ospcommon::math::vec3ul num_items { 1, 1, 1 };
-    ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
-    
-    for (int i = 0; i < ndim-1; i++)
-        num_items[i] = array.shape(i);
-    
+    vec3ul num_items { 1, 1, 1 };
+    vec3ul byte_stride { 0, 0, 0 };
+
+    num_items.x = array.shape(0);
+    if (ndim > 2)
+        num_items.y = array.shape(1);
+    if (ndim > 3)
+        num_items.z = array.shape(2);
+
     if (vecdim == 2)
     {
         if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2f*)array.data(), is_shared);
-        /*else if (py::isinstance<py::array_t<double>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2d*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC2F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC2D, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2c*)array.data(), is_shared);*/
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC2C, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2uc*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC2UC, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2i*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC2I, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ui*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC2UI, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int64_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2l*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC2L, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint64_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec2ul*)array.data(), is_shared);    
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC2UL, num_items, byte_stride);
     }       
     else if (vecdim == 3)
     {
         if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3f*)array.data(), is_shared);
-        /*else if (py::isinstance<py::array_t<double>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3d*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC3F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC3D, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3c*)array.data(), is_shared);*/
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC3C, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3uc*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC3UC, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3i*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC3I, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ui*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC3UI, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int64_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3l*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC3L, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint64_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec3ul*)array.data(), is_shared);       
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC3UL, num_items, byte_stride);
     }
     else
     {
         if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4f*)array.data(), is_shared);
-        /*else if (py::isinstance<py::array_t<double>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4d*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC4F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC4D, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4c*)array.data(), is_shared);*/
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC4C, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint8_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4uc*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC4UC, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4i*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC4I, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ui*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC4UI, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int64_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4l*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC4L, num_items, byte_stride);
         else if (py::isinstance<py::array_t<uint64_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::vec4ul*)array.data(), is_shared);    
+            return ospray::cpp::CopiedData(array.data(), OSP_VEC4UL, num_items, byte_stride);
     }
     
-    printf("WARNING: unhandled array in data_from_numpy_array_vec(): ");
+    printf("WARNING: unhandled array in copied_data_from_numpy_array_vec(): ");
     print_array_info(array);
     printf("\n");
         
-    return ospray::cpp::Data();
+    return ospray::cpp::CopiedData();
 }
+
+ospray::cpp::SharedData
+shared_data_from_numpy_array_vec(const py::array& array)
+{
+    const int ndim = array.ndim();
+    
+    if (ndim > 3)
+    {
+        printf("ERROR: more than 3 dimensions not supported in shared_data_from_numpy_array_vec(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::SharedData();
+    }
+    
+    const int vecdim = array.shape(ndim-1);
+    
+    if (vecdim < 2 || vecdim > 4)
+    {
+        printf("ERROR: last dimension needs to be in range 2-4 in shared_data_from_numpy_array_vec(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::SharedData();
+    }
+    
+    const py::dtype& dtype = array.dtype();
+    vec3ul num_items { 1, 1, 1 };
+    vec3ul byte_stride { 0, 0, 0 };
+
+    num_items.x = array.shape(0);
+    if (ndim > 2)
+        num_items.y = array.shape(1);
+    if (ndim > 3)
+        num_items.z = array.shape(2);
+
+    if (vecdim == 2)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC2F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC2D, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int8_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC2C, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC2UC, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC2I, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC2UI, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int64_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC2L, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC2UL, num_items, byte_stride);
+    }       
+    else if (vecdim == 3)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC3F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC3D, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int8_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC3C, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC3UC, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC3I, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC3UI, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int64_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC3L, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC3UL, num_items, byte_stride);
+    }
+    else
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC4F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<double>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC4D, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int8_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC4C, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint8_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC4UC, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC4I, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC4UI, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int64_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC4L, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<uint64_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_VEC4UL, num_items, byte_stride);
+    }
+    
+    printf("WARNING: unhandled array in shared_data_from_numpy_array_vec(): ");
+    print_array_info(array);
+    printf("\n");
+        
+    return ospray::cpp::SharedData();
+}
+
 
 
 // Turn a numpy array of shape (..., 2|4|6|8) into a Data object of
@@ -327,70 +489,143 @@ data_from_numpy_array_vec(const py::array& array, bool is_shared=false)
     using box4f  = box_t<float, 4>;
     //using box3fa = box_t<float, 3, 1>;
 */
-ospray::cpp::Data
-data_from_numpy_array_box(const py::array& array, bool is_shared=false)
+
+ospray::cpp::CopiedData
+copied_data_from_numpy_array_box(const py::array& array)
 {
     const int ndim = array.ndim();
     
     if (ndim > 3)
     {
-        printf("ERROR: more than 3 dimensions not supported in data_from_numpy_array_box(): ");
+        printf("ERROR: more than 3 dimensions not supported in copied_data_from_numpy_array_box(): ");
         print_array_info(array);
         printf("\n");
-        return ospray::cpp::Data();
+        return ospray::cpp::CopiedData();
     }
     
     const int vecdim = array.shape(ndim-1);
     
     if (vecdim != 2 && vecdim != 4 && vecdim != 6 && vecdim != 8)
     {
-        printf("ERROR: last dimension needs to be 2,4,6 or 8 in data_from_numpy_array_box(): ");
+        printf("ERROR: last dimension needs to be 2,4,6 or 8 in copied_data_from_numpy_array_box(): ");
         print_array_info(array);
         printf("\n");
-        return ospray::cpp::Data();
+        return ospray::cpp::CopiedData();
     }
     
     const py::dtype& dtype = array.dtype();
-    ospcommon::math::vec3ul num_items { 1, 1, 1 };
-    ospcommon::math::vec3ul byte_stride { 0, 0, 0 };
+    vec3ul  num_items { 1, 1, 1 };
+    vec3ul  byte_stride { 0, 0, 0 };
     
-    for (int i = 0; i < ndim-1; i++)
-        num_items[i] = array.shape(i);
+    num_items.x = array.shape(0);
+    if (ndim > 2)
+        num_items.y = array.shape(1);
+    if (ndim > 3)
+        num_items.z = array.shape(2);
     
     if (vecdim == 2)
     {
         if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box1f*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_BOX1F, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box1i*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_BOX1I, num_items, byte_stride);
     }       
     else if (vecdim == 4)
     {
         if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box2f*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_BOX2F, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box2i*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_BOX2I, num_items, byte_stride);
     }
     else if (vecdim == 6)
     {
         if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box3f*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_BOX3F, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box3i*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_BOX3I, num_items, byte_stride);
     }
     else
     {
         if (py::isinstance<py::array_t<float>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box4f*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_BOX4F, num_items, byte_stride);
         else if (py::isinstance<py::array_t<int32_t>>(array))
-            return ospray::cpp::Data(num_items, byte_stride, (ospcommon::math::box4i*)array.data(), is_shared);
+            return ospray::cpp::CopiedData(array.data(), OSP_BOX4I, num_items, byte_stride);
     }
     
-    printf("WARNING: unhandled array in data_from_numpy_array_box(): ");
+    printf("WARNING: unhandled array in copied_data_from_numpy_array_box(): ");
     print_array_info(array);
     printf("\n");
         
-    return ospray::cpp::Data();
+    return ospray::cpp::CopiedData();
+}
+
+ospray::cpp::SharedData
+shared_data_from_numpy_array_box(const py::array& array)
+{
+    const int ndim = array.ndim();
+    
+    if (ndim > 3)
+    {
+        printf("ERROR: more than 3 dimensions not supported in shared_data_from_numpy_array_box(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::SharedData();
+    }
+    
+    const int vecdim = array.shape(ndim-1);
+    
+    if (vecdim != 2 && vecdim != 4 && vecdim != 6 && vecdim != 8)
+    {
+        printf("ERROR: last dimension needs to be 2,4,6 or 8 in shared_data_from_numpy_array_box(): ");
+        print_array_info(array);
+        printf("\n");
+        return ospray::cpp::SharedData();
+    }
+    
+    const py::dtype& dtype = array.dtype();
+    vec3ul  num_items { 1, 1, 1 };
+    vec3ul  byte_stride { 0, 0, 0 };
+    
+    num_items.x = array.shape(0);
+    if (ndim > 2)
+        num_items.y = array.shape(1);
+    if (ndim > 3)
+        num_items.z = array.shape(2);
+    
+    if (vecdim == 2)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_BOX1F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_BOX1I, num_items, byte_stride);
+    }       
+    else if (vecdim == 4)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_BOX2F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_BOX2I, num_items, byte_stride);
+    }
+    else if (vecdim == 6)
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_BOX3F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_BOX3I, num_items, byte_stride);
+    }
+    else
+    {
+        if (py::isinstance<py::array_t<float>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_BOX4F, num_items, byte_stride);
+        else if (py::isinstance<py::array_t<int32_t>>(array))
+            return ospray::cpp::SharedData(array.data(), OSP_BOX4I, num_items, byte_stride);
+    }
+    
+    printf("WARNING: unhandled array in shared_data_from_numpy_array_box(): ");
+    print_array_info(array);
+    printf("\n");
+        
+    return ospray::cpp::SharedData();
 }
 
 template<typename T>
@@ -423,7 +658,14 @@ set_param_string(T &self, const std::string &name, const std::string &value)
 
 template<typename T>
 void
-set_param_data(T &self, const std::string &name, const ospray::cpp::Data &data)
+set_param_copied_data(T &self, const std::string &name, const ospray::cpp::CopiedData &data)
+{
+    self.setParam(name, data);
+}
+
+template<typename T>
+void
+set_param_shared_data(T &self, const std::string &name, const ospray::cpp::SharedData &data)
 {
     self.setParam(name, data);
 }
@@ -470,7 +712,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
     {
         if (ints)
         {
-            ospcommon::math::vec2i vvalue;
+            vec2i vvalue;
             
             vvalue.x = py::cast<int>(value[0]);
             vvalue.y = py::cast<int>(value[1]);
@@ -479,7 +721,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
         }
         else
         {
-            ospcommon::math::vec2f vvalue;
+            vec2f vvalue;
             
             vvalue.x = py::cast<float>(value[0]);
             vvalue.y = py::cast<float>(value[1]);
@@ -492,7 +734,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
     {
         if (ints)
         {
-            ospcommon::math::vec3i vvalue;
+            vec3i vvalue;
             
             vvalue.x = py::cast<int>(value[0]);
             vvalue.y = py::cast<int>(value[1]);
@@ -502,7 +744,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
         }
         else 
         {
-            ospcommon::math::vec3f vvalue;
+            vec3f vvalue;
             
             vvalue.x = py::cast<float>(value[0]);
             vvalue.y = py::cast<float>(value[1]);
@@ -516,7 +758,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
     {
         if (ints)
         {
-            ospcommon::math::vec4i vvalue;
+            vec4i vvalue;
             
             vvalue.x = py::cast<int>(value[0]);
             vvalue.y = py::cast<int>(value[1]);
@@ -527,7 +769,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
         }
         else
         {
-            ospcommon::math::vec4f vvalue;
+            vec4f vvalue;
             
             vvalue.x = py::cast<float>(value[0]);
             vvalue.y = py::cast<float>(value[1]);
@@ -540,7 +782,7 @@ set_param_tuple(T &self, const std::string &name, const py::tuple &value)
 }
 
 template<typename T>
-ospray::cpp::Data
+ospray::cpp::CopiedData
 build_data_from_list(const std::string &listcls, const py::list &values)
 {
     std::vector<T> items;
@@ -555,13 +797,13 @@ build_data_from_list(const std::string &listcls, const py::list &values)
             printf("ERROR: item %lu in list is not of type '%s', but of type '%s'!\n", 
                 i, listcls.c_str(), itemcls.c_str());
             
-            return ospray::cpp::Data();
+            return ospray::cpp::CopiedData();
         }
         
         items.push_back(values[i].cast<T>());
     }
     
-    return ospray::cpp::Data(items);
+    return ospray::cpp::CopiedData(items);
 }
 
 // List assumed to only contain OSPObject's of the same type
@@ -599,15 +841,18 @@ template<typename T>
 void
 set_param_numpy_array(T &self, const std::string &name, py::array &array)
 {
-    self.setParam(name, data_from_numpy_array(array));
+    self.setParam(name, copied_data_from_numpy_array(array));
 }
 
+/*
+How to pass an affine3f?
 template<typename T>
 void
 set_param_affine3f(T &self, const std::string &name, const ospcommon::math::affine3f &value)
 {
     self.setParam(name, value);
 }
+*/
 
 template<typename T>
 void
@@ -648,7 +893,7 @@ template<typename T>
 py::tuple
 get_bounds(T &self)
 {
-    ospcommon::math::box3f bounds = self.getBounds();
+    const box3f bounds = self.template getBounds<box3f>();  // XXX ugliest C++ syntax ever...
     
     return py::make_tuple(
         bounds.lower.x, bounds.lower.y, bounds.lower.z,
@@ -685,9 +930,10 @@ declare_managedobject(py::module &m, const char *name)
         .def("set_param", &set_param_string<T>)
         .def("set_param", &set_param_tuple<T>)
         .def("set_param", &set_param_list<T>)
-        .def("set_param", &set_param_data<T>)
+        .def("set_param", &set_param_copied_data<T>)
+        .def("set_param", &set_param_shared_data<T>)
         .def("set_param", &set_param_numpy_array<T>)
-        .def("set_param", &set_param_affine3f<T>)
+        //.def("set_param", &set_param_affine3f<T>)
         .def("set_param", &set_param_material<T>)
         .def("set_param", &set_param_texture<T>)        
         .def("set_param", &set_param_transfer_function<T>)        
@@ -756,6 +1002,7 @@ framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, p
 
 // affine3f
 
+/*
 ospcommon::math::affine3f 
 make_rotate(const ospcommon::math::vec3f &v, const float &f)
 {
@@ -767,6 +1014,7 @@ make_identity()
 {
     return ospcommon::math::affine3f(ospcommon::math::one);
 }
+*/
 
 // Main module
  
@@ -810,11 +1058,11 @@ PYBIND11_MODULE(ospray, m)
         return ospray::cpp::Device(ospGetCurrentDevice());
     });
     // Current device only
-    m.def("set_error_func", [](py::function& func) { 
-        py_error_func = func; 
+    m.def("set_error_callback", [](py::function& func) { 
+        py_error_callback = func; 
     });
-    m.def("set_status_func", [](py::function& func) { 
-        py_status_func = func; 
+    m.def("set_status_callback", [](py::function& func) { 
+        py_status_callback = func; 
     });
     
     py::class_<ospray::cpp::Device>(m, "Device")
@@ -837,7 +1085,7 @@ PYBIND11_MODULE(ospray, m)
         .def(py::init<const std::string &>())
     ;
 
-    py::class_<ospray::cpp::Data, ManagedData>(m, "Data")
+    py::class_<ospray::cpp::CopiedData, ManagedData>(m, "CopiedData")
         .def(py::init<const ospray::cpp::GeometricModel &>())
         .def(py::init<const ospray::cpp::Geometry &>())
         .def(py::init<const ospray::cpp::ImageOperation &>())
@@ -846,7 +1094,20 @@ PYBIND11_MODULE(ospray, m)
         .def(py::init<const ospray::cpp::VolumetricModel &>())
         .def(py::init(
             [](py::array& array) {
-                return data_from_numpy_array(array);
+                return copied_data_from_numpy_array(array);
+            }))
+    ;
+
+    py::class_<ospray::cpp::SharedData, ManagedData>(m, "SharedData")
+        .def(py::init<const ospray::cpp::GeometricModel &>())
+        .def(py::init<const ospray::cpp::Geometry &>())
+        .def(py::init<const ospray::cpp::ImageOperation &>())
+        .def(py::init<const ospray::cpp::Instance &>())
+        .def(py::init<const ospray::cpp::Light &>())
+        .def(py::init<const ospray::cpp::VolumetricModel &>())
+        .def(py::init(
+            [](py::array& array) {
+                return shared_data_from_numpy_array(array);
             }))
     ;
             
@@ -865,8 +1126,8 @@ PYBIND11_MODULE(ospray, m)
     ;
             
     py::class_<ospray::cpp::FrameBuffer, ManagedFrameBuffer>(m, "FrameBuffer")
-        .def(py::init<const ospcommon::math::vec2i&, OSPFrameBufferFormat, int>(),
-            py::arg(), py::arg("format")=OSP_FB_SRGBA, py::arg("channels")=OSP_FB_COLOR)
+        .def(py::init<int, int, OSPFrameBufferFormat, int>(),
+            py::arg(), py::arg(), py::arg("format")=OSP_FB_SRGBA, py::arg("channels")=OSP_FB_COLOR)
         .def("clear", &ospray::cpp::FrameBuffer::clear)
         .def("get_variance", [](const ospray::cpp::FrameBuffer& self) {
                 return ospGetVariance(self.handle());
@@ -939,6 +1200,7 @@ PYBIND11_MODULE(ospray, m)
     
     // Utility
     
+    /*
     py::class_<ospcommon::math::affine3f>(m, "affine3f")      
         .def_static("identity", &make_identity)
         .def_static("scale", &ospcommon::math::affine3f::scale)
@@ -957,10 +1219,15 @@ PYBIND11_MODULE(ospray, m)
         .def(py::self * py::self)
         .def(py::self / py::self)
     ;
+    */
     
-    m.def("data_constructor", &data_from_numpy_array, py::arg(), py::arg("is_shared")=false);
-    m.def("data_constructor_vec", &data_from_numpy_array_vec, py::arg(), py::arg("is_shared")=false);
-    m.def("data_constructor_box", &data_from_numpy_array_box, py::arg(), py::arg("is_shared")=false);
+    m.def("copied_data_constructor", &copied_data_from_numpy_array, py::arg());
+    m.def("copied_data_constructor_vec", &copied_data_from_numpy_array_vec, py::arg());
+    m.def("copied_data_constructor_box", &copied_data_from_numpy_array_box, py::arg());
+
+    m.def("shared_data_constructor", &shared_data_from_numpy_array, py::arg());
+    m.def("shared_data_constructor_vec", &shared_data_from_numpy_array_vec, py::arg());
+    m.def("shared_data_constructor_box", &shared_data_from_numpy_array_box, py::arg());
     
     // Library version
 
@@ -972,6 +1239,6 @@ PYBIND11_MODULE(ospray, m)
     m.def("version", &runtime_version);
 
     // Define testing submodule
-    define_testing(m);
+    //define_testing(m);
 }
 

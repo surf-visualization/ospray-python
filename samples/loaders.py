@@ -56,14 +56,14 @@ def read_stl(fname, force_subdivision_mesh=False):
         
         if not force_subdivision_mesh:
             mesh = ospray.Geometry('mesh')
-            mesh.set_param('vertex.position', ospray.data_constructor_vec(vertices))        
-            mesh.set_param('vertex.normal', ospray.data_constructor_vec(normals))        
-            mesh.set_param('index', ospray.data_constructor_vec(indices.reshape((-1, 3))))        
+            mesh.set_param('vertex.position', ospray.copied_data_constructor_vec(vertices))        
+            mesh.set_param('vertex.normal', ospray.copied_data_constructor_vec(normals))        
+            mesh.set_param('index', ospray.copied_data_constructor_vec(indices.reshape((-1, 3))))        
         # XXX borked
         #else:
         #    mesh = ospray.Geometry('subdivision')
-        #    mesh.set_param('vertex.position', ospray.data_constructor_vec(vertices))        
-        #    mesh.set_param('index', ospray.data_constructor(indices))            
+        #    mesh.set_param('vertex.position', ospray.copied_data_constructor_vec(vertices))        
+        #    mesh.set_param('index', ospray.copied_data_constructor(indices))            
         #    mesh.set_param('face', numpy.repeat(3, num_triangles*3).astype('uint32'))
             
         mesh.commit()
@@ -97,7 +97,7 @@ def read_ply(fname, force_subdivision_mesh=False):
     if mesh_type.startswith('pure-') and not force_subdivision_mesh:
         mesh = ospray.Geometry('mesh')
         indices = indices.reshape((-1, minn))
-        mesh.set_param('index', ospray.data_constructor_vec(indices))
+        mesh.set_param('index', ospray.copied_data_constructor_vec(indices))
         # Get a OSPRAY STATUS: ospray::Mesh ignoring 'index' array with wrong element type (should be vec3ui)
         # when passing a pure-quad index array
         
@@ -116,14 +116,14 @@ def read_ply(fname, force_subdivision_mesh=False):
             first += n
             
         new_indices = numpy.array(new_indices, dtype=numpy.uint32).reshape((-1, 4))    
-        mesh.set_param('index', ospray.data_constructor_vec(new_indices))
+        mesh.set_param('index', ospray.copied_data_constructor_vec(new_indices))
     else:
         # Use subdivision surface
         mesh = ospray.Geometry('subdivision')
-        mesh.set_param('index', ospray.data_constructor(indices))
+        mesh.set_param('index', ospray.copied_data_constructor(indices))
         mesh.set_param('face', loop_length)
         
-    mesh.set_param('vertex.position', ospray.data_constructor_vec(vertices))
+    mesh.set_param('vertex.position', ospray.copied_data_constructor_vec(vertices))
 
     if 'vertex_colors' in plymesh:
         print('Have vertex colors')
@@ -134,7 +134,7 @@ def read_ply(fname, force_subdivision_mesh=False):
         alpha = numpy.ones((n,1), dtype=numpy.float32)
         colors = numpy.hstack((colors, alpha))
         
-        mesh.set_param('vertex.color', ospray.data_constructor_vec(colors))
+        mesh.set_param('vertex.color', ospray.copied_data_constructor_vec(colors))
 
     mesh.commit()
     
@@ -177,7 +177,7 @@ def read_obj(fname, force_subdivision_mesh=False):
         if mesh_type.startswith('pure-') and not force_subdivision_mesh:
             mesh = ospray.Geometry('mesh')
             vertex_indices = vertex_indices.reshape((-1, minn)).astype('uint32')
-            mesh.set_param('index', ospray.data_constructor_vec(vertex_indices))
+            mesh.set_param('index', ospray.copied_data_constructor_vec(vertex_indices))
         elif mesh_type == 'mixed-tris-and-quads' and not force_subdivision_mesh:
             mesh = ospray.Geometry('mesh')
             
@@ -193,14 +193,14 @@ def read_obj(fname, force_subdivision_mesh=False):
                 first += n
                 
             new_indices = numpy.array(new_indices, dtype=numpy.uint32).reshape((-1, 4))    
-            mesh.set_param('index', ospray.data_constructor_vec(new_indices))
+            mesh.set_param('index', ospray.copied_data_constructor_vec(new_indices))
         else:
             # Use subdivision surface
             mesh = ospray.Geometry('subdivision')
-            mesh.set_param('index', ospray.data_constructor(vertex_indices))
+            mesh.set_param('index', ospray.copied_data_constructor(vertex_indices))
             mesh.set_param('face', face_lengths)
             
-        mesh.set_param('vertex.position', ospray.data_constructor_vec(vertices))
+        mesh.set_param('vertex.position', ospray.copied_data_constructor_vec(vertices))
         
         mesh.commit()
         
@@ -282,12 +282,12 @@ def read_pdb(fname, radius=1):
         assert positions.shape[0] == colors.shape[0]
 
         spheres = ospray.Geometry('sphere')
-        spheres.set_param('sphere.position', ospray.data_constructor_vec(positions))
-        spheres.set_param('sphere.radius', ospray.data_constructor(radii))
+        spheres.set_param('sphere.position', ospray.copied_data_constructor_vec(positions))
+        spheres.set_param('sphere.radius', ospray.copied_data_constructor(radii))
         spheres.commit()
         
         gmodel = ospray.GeometricModel(spheres)
-        gmodel.set_param('color', ospray.data_constructor_vec(colors))
+        gmodel.set_param('color', ospray.copied_data_constructor_vec(colors))
         gmodel.commit()
         
         

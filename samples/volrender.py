@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+BROKEN
+Traceback (most recent call last):
+  File "/home/melis/concepts/ospray-python/./samples/volrender.py", line 375, in <module>
+    vinstance.set_param('xfm', ospray.affine3f.identity())
+AttributeError: module 'ospray' has no attribute 'affine3f'
+"""
 # E.g.
 # ./samples/volrender.py -s 1,1,2 -d 256,256,84 -v 0,255 -t ~/models/brain/carnival.trn ~/models/brain/brain256_256_84_8.raw 
 # ./samples/volrender.py -i 128 -s 1,1,2 -d 256,256,84 -v 0,255 -t ~/models/brain/carnival.trn ~/models/brain/brain256_256_84_8.raw 
@@ -40,8 +47,8 @@ def error_callback(error, details):
 def status_callback(message):
     print('OSPRAY STATUS: %s' % message)
     
-ospray.set_error_func(error_callback)
-ospray.set_status_func(status_callback)
+ospray.set_error_callback(error_callback)
+ospray.set_status_callback(status_callback)
 
 device = ospray.get_current_device()
 device.set_param('logLevel', 1)
@@ -55,6 +62,7 @@ def usage():
     print('%s [options] file.raw|file.h5|file.hdf5' % sys.argv[0])
     print()
     print('Options:')
+    print(' -a anisotropy                   Volume anisotropy')
     print(' -b r,g,b[,a]                    Background color')
     print(' -d xdim,ydim,zdim               .raw file dimensions')
     print(' -D dataset_name                 HDF5 dataset name')
@@ -62,11 +70,14 @@ def usage():
     print(' -t <default>|<linear>|<file.trn> Set transfer function')
     print(' -i isovalue                     Render as isosurface instead of volume')
     print(' -I width,height                 Image resolution')
+    print(' -o output-image                 Output file (default: volume.png)')
     print(' -p                              Use pathtracer (default: use scivis renderer)')
     print(' -s xs,ys,zs                     Grid spacing')
     print(' -S samples                      Samples per pixel')
     print(' -v minval,maxval                Volume value range')
     print(' -x                              Display image after rendering (uses tkinter)')
+    print()
+    print('When reading a .raw file 8-bit unsigned integers are assumed')
     print()
 
 anisotropy = 0.0
@@ -235,7 +246,7 @@ if set_value is not None:
 # deallocated otherwise
 saved_data = data
 
-data = ospray.data_constructor(data, is_shared=True)
+data = ospray.shared_data_constructor(data)
 
 volume = ospray.Volume('structuredRegular')
 volume.set_param('gridSpacing', tuple(grid_spacing.tolist()))
@@ -318,7 +329,7 @@ print('tfcolors', tfcolors.shape)
 print('tfopacities', tfopacities.shape)
     
 transfer_function = ospray.TransferFunction('piecewiseLinear')
-transfer_function.set_param('color', ospray.data_constructor_vec(tfcolors))
+transfer_function.set_param('color', ospray.copied_data_constructor_vec(tfcolors))
 transfer_function.set_param('opacity', tfopacities)
 transfer_function.set_param('valueRange', tuple(value_range))
 transfer_function.commit()
@@ -368,7 +379,7 @@ else:
     vgroup.commit()
 
     vinstance = ospray.Instance(vgroup)
-    vinstance.set_param('xfm', ospray.affine3f.identity())
+    vinstance.set_param('transform', ospray.affine3f.identity())
     vinstance.commit()
 
     instances = [vinstance]
@@ -443,7 +454,7 @@ if RENDERER == 'pathtracer':
 #pixel = numpy.ones((1,1,3), numpy.uint8)
 #backplate = ospray.Texture("texture2d")
 #backplate.set_param('format', ospray.OSP_TEXTURE_RGB8)
-#backplate.set_param('data', ospray.data_constructor_vec(pixel))
+#backplate.set_param('data', ospray.copied_data_constructor_vec(pixel))
 #backplate.commit()
 
 renderer = ospray.Renderer(RENDERER)
@@ -463,7 +474,7 @@ renderer.commit()
 format = ospray.OSP_FB_SRGBA
 channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_FB_DEPTH) | int(ospray.OSP_FB_VARIANCE)
 
-framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer = ospray.FrameBuffer(W, H, format, channels)
 framebuffer.clear()
 
 # Render!

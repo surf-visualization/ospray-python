@@ -44,9 +44,9 @@ camera.set_param('up', cam_up)
 camera.commit()
 
 mesh = ospray.Geometry('mesh')
-mesh.set_param('vertex.position', ospray.data_constructor_vec(vertex))
-mesh.set_param('vertex.color', ospray.data_constructor_vec(color))
-mesh.set_param('index', ospray.data_constructor_vec(index))
+mesh.set_param('vertex.position', ospray.copied_data_constructor_vec(vertex))
+mesh.set_param('vertex.color', ospray.copied_data_constructor_vec(color))
+mesh.set_param('index', ospray.copied_data_constructor_vec(index))
 mesh.commit()
 
 gmodel = ospray.GeometricModel(mesh)
@@ -87,7 +87,7 @@ format = ospray.OSP_FB_RGBA32F
 # Denoiser needs albedo and normal passes for better performance
 channels = int(ospray.OSP_FB_COLOR) | int(ospray.OSP_FB_ACCUM) | int(ospray.OSP_FB_ALBEDO) | int(ospray.OSP_FB_NORMAL)
 
-framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer = ospray.FrameBuffer(W, H, format, channels)
 framebuffer.set_param('imageOperation', [denoise])
 framebuffer.commit()
 
@@ -108,7 +108,7 @@ img.save('with-denoise.png')
 
 # Render again without denoising
 
-framebuffer = ospray.FrameBuffer((W,H), format, channels)
+framebuffer = ospray.FrameBuffer(W, H, format, channels)
 framebuffer.commit()
 
 framebuffer.clear()
