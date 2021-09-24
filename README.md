@@ -14,6 +14,12 @@ These bindings started just to try out [pybind11](https://github.com/pybind/pybi
 but they have quickly become pretty useful, as Pybind11 is an amazing little
 library that makes wrapping C++ very easy (inspired by the just-as-great Boost.Python).
 
+Dependencies:
+
+- [pybind11](https://github.com/pybind/pybind11)
+- [GLM](https://github.com/g-truc/glm)
+- [OSPRay](https://www.ospray.org)
+
 ## Conventions 
 
 - One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`
