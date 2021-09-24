@@ -71,7 +71,7 @@ are automatically converted to OSPRay types:
 
 Examples:
 
-```
+``` python
 # 3-tuple -> vec3f
 light1 = ospray.Light('ambient')
 light1.set_param('color', (1.0, 1, 1))
@@ -103,7 +103,7 @@ context manager together with the `with` statement. On exit of the
 
 So instead of
 
-```
+``` python
 light = ospray.Light('ambient')
 light.set_param('color', (1.0, 1, 1))
 light.set_param('intensity', 1.0)
@@ -113,7 +113,7 @@ light.commit()
 
 you can write
 
-```
+``` python
 light = ospray.Light('ambient')
 with light:
     light.set_param('color', (1.0, 1, 1))
@@ -124,7 +124,7 @@ with light:
 Or with the new [assignment expression](https://docs.python.org/3/whatsnew/3.8.html#assignment-expressions)
 introduced in Python 3.8 this can even be shortened to
 
-```
+``` python
 with (light := ospray.Light('ambient')):
     light.set_param('color', (1.0, 1, 1))
     light.set_param('intensity', 1.0)
