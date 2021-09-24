@@ -2,9 +2,40 @@
 #define TESTING_H
 
 #include <pybind11/pybind11.h>
-#include <ospray/ospray_testing/ospray_testing.h>
+//#include <ospray/ospray_testing/ospray_testing.h>
+
+namespace ospray {
+namespace testing {
+
+using SceneBuilderHandle = void *;
+
+SceneBuilderHandle newBuilder(const std::string &type);
+
+template <typename T>
+void setParam(SceneBuilderHandle b, const std::string &type, const T &val);
+
+cpp::Group buildGroup(SceneBuilderHandle b);
+
+cpp::World buildWorld(SceneBuilderHandle b);
+
+void commit(SceneBuilderHandle b);
+
+void release(SceneBuilderHandle b);
+}
+}
 
 namespace py = pybind11;
+
+/*
+# Create scene
+builder = ospray.testing.new_builder(SCENE)
+builder.set_param('rendererType', RENDERER)
+builder.commit()
+
+if True:
+    world = builder.build_world()
+    world.commit()
+*/
 
 struct SceneBuilder
 {

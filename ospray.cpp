@@ -1259,6 +1259,7 @@ PYBIND11_MODULE(ospray, m)
     m.def("version", &runtime_version);
 
     // Define testing submodule
+    // Usage of ospray_testing unfortunately isn't easy to provide for a binary build, see https://github.com/ospray/ospray/issues/419
     //define_testing(m);
 }
 

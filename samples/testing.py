@@ -50,12 +50,12 @@ device.set_param('logLevel', 1)
 device.commit()
 
 # Create scene
-scene = ospray.testing.SceneBuilder(SCENE)
-scene.set_param('rendererType', RENDERER)
-scene.commit()
+builder = ospray.testing.new_builder(SCENE)
+builder.set_param('rendererType', RENDERER)
+builder.commit()
 
 if True:
-    world = scene.build_world()
+    world = builder.build_world()
     world.commit()
 else:
     group = scene.build_group()

@@ -11,5 +11,5 @@ g++ \
     `python -m pybind11 --includes` \
     ospray.cpp \
     -o ospray`python3-config --extension-suffix` \
-    -lospray \
-    -lospray_testing
+    -lospray
+    #-lospray_testing
