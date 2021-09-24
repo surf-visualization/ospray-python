@@ -39,7 +39,7 @@ be 2, 3 or 4.
 
 Note that there are two variants of each of these functions: a `copied_...` one
 and a `shared_...` one. The former makes a copy of the data array passed, while
-the latter expects the underlying NumPy array to stay alive as long as the OSPRAY
+the latter expects the underlying NumPy array to stay alive as long as the OSPRay
 Data is being used. You need to manage these lifetimes yourself.
 
 ### Automatic conversion
@@ -132,8 +132,8 @@ with (light := ospray.Light('ambient')):
 
 ## Affine3f replacement
 
-Some parameters on OSPRAY objects are of type `affine3f`, most notably the often-used `transform` values on Instances.
-Since OSPRAY does not provide a convenient matrix type for setting up such transformation we wrap GLM's `mat4` type,
+Some parameters on OSPRay objects are of type `affine3f`, most notably the often-used `transform` values on Instances.
+Since OSPRay does not provide a convenient matrix type for setting up such transformation we wrap GLM's `mat4` type,
 which is a general 4x4 matrix. It is available as `ospray.mat4` and provides a subset of GLM's `mat4` methods.
 
 # Missing features and/or limitations
