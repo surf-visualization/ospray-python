@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """
-BROKEN
-Traceback (most recent call last):
-  File "/home/melis/concepts/ospray-python/./samples/volrender.py", line 375, in <module>
-    vinstance.set_param('xfm', ospray.affine3f.identity())
-AttributeError: module 'ospray' has no attribute 'affine3f'
+Isosurface rendering results in black image and warning
+
+OSPRAY STATUS: ospray::Isosurfaces deprecated parameter use. Isosurfaces will begin taking an OSPVolume directly, with appearance set through the GeometricModel instead.
+
+OSPRAY STATUS: ospray::Isosurfaces created: #primitives=1
+
+Even though scene setup appears to be correct
 """
 # E.g.
 # ./samples/volrender.py -s 1,1,2 -d 256,256,84 -v 0,255 -t ~/models/brain/carnival.trn ~/models/brain/brain256_256_84_8.raw 
@@ -340,9 +342,9 @@ vmodel.set_param('transferFunction', transfer_function)
 vmodel.set_param('anisotropy', anisotropy)
 vmodel.commit()
 
-# Isosurface rendered
-
 if isovalue is not None:
+
+    # Isosurface rendered
     
     isovalues = numpy.array([isovalue], dtype=numpy.float32)
     isosurface = ospray.Geometry('isosurface')
@@ -364,8 +366,8 @@ if isovalue is not None:
     ggroup.commit()
 
     ginstance = ospray.Instance(ggroup)
-    ginstance.set_param('xfm', ospray.affine3f.identity())
-    #ginstance.set_param('xfm', ospray.affine3f.translate((dimensions[0],0,0)))
+    ginstance.set_param('transform', ospray.mat4.identity())
+    #ginstance.set_param('transform', ospray.mat4.translate(dimensions[0], 0, 0))
     ginstance.commit()
 
     instances = [ginstance]
@@ -379,7 +381,7 @@ else:
     vgroup.commit()
 
     vinstance = ospray.Instance(vgroup)
-    vinstance.set_param('transform', ospray.affine3f.identity())
+    vinstance.set_param('transform', ospray.mat4.identity())
     vinstance.commit()
 
     instances = [vinstance]

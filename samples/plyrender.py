@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-"""
-BROKEN
-Needs affine3
-"""
-
 import sys, getopt, math, os
 scriptdir = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.join(scriptdir, '..'))
@@ -42,10 +37,20 @@ force_subdivision_mesh = False
 renderer_type = 'pathtracer'
 debug_renderer_type = 'primID'
 samples = 8
-subvision_level = 5.0
+subdivision_level = 5.0
 display_result = False
 
-optlist, args = getopt.getopt(argv[1:], 'd:l:sx')
+def usage():
+    print('Usage: %s [options] file.ply' % sys.argv[0])
+    print()
+    print('-d type          Use debug renderer of specific type')
+    print('-l subdivlevel   Subdivision level (default: %f)' % subdivision_level)
+    print('-s               Force subdivision mesh')
+    print('-x               Display result (requires tkinter module)')
+    print('-h               Help')
+    print()
+
+optlist, args = getopt.getopt(argv[1:], 'd:hl:sx')
 
 for o, a in optlist:
     if o == '-d':
@@ -53,12 +58,19 @@ for o, a in optlist:
         debug_renderer_type = a
         if debug_renderer_type not in ['rayDir','eyeLight','primID','geomID','instID','Ng','Ns','backfacing_Ng','backfacing_Ns','dPds','dPdt','volume']:
             print('Debug renderer will show test frame')
+    elif o == '-h':
+        usage()
+        sys.exit(-1)
     elif o == '-l':
-        subvision_level = float(a)
+        subdivision_level = float(a)
     elif o == '-s':
         force_subdivision_mesh = True
     elif o == '-x':
         display_result = True
+
+if len(args) != 1:
+    usage()
+    sys.exit(-1)
 
 # Set up material
 
@@ -92,23 +104,23 @@ elif ext == '.pdb':
     meshes = read_pdb(fname)
 else:
     raise ValueError('Unknown extension %s' % ext)
-    
+
 if isinstance(meshes, ospray.GeometricModel):
     meshes.set_param('material', material)
-    meshes.commit()
+    meshes.commit()    
     gmodels = [meshes]
 else:
     gmodels = []
     for mesh in meshes:
         
         if force_subdivision_mesh:
-            mesh.set_param('level', subvision_level)
+            mesh.set_param('level', subdivision_level)
         
         gmodel = ospray.GeometricModel(mesh)
         if material is not None:
             gmodel.set_param('material', material)
         gmodel.commit()
-        
+    
         gmodels.append(gmodel)
     
 if len(gmodels) == 0:
@@ -122,19 +134,19 @@ group.set_param('geometry', gmodels)
 group.commit()
 
 instance1 = ospray.Instance(group)
-instance1.set_param('xfm', ospray.affine3f.identity())
+instance1.set_param('transform', ospray.mat4.identity())
 instance1.commit()
 
 instances = [instance1]
 
 if False:
     instance2 = ospray.Instance(group)
-    instance2.set_param('transform', ospray.affine3f.translate((1,0,0)))
+    instance2.set_param('transform', ospray.mat4.translate(1, 0, 0))
     instance2.commit()
 
     instance3 = ospray.Instance(group)
     instance3.set_param('transform', 
-        ospray.affine3f.translate((0,1,0)) * ospray.affine3f.rotate((0,0,1), 90)
+        ospray.mat4.translate(0, 1, 0) * ospray.mat4.rotate(90, 0, 0, 1)
         )
     instance3.commit()
 

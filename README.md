@@ -7,7 +7,7 @@ method of setting object parameters in OSPRay these are supported
 on all objects as well. But see the notes on data type mapping
 below.
 
-Note that this code is targeted at the 2.1.x branch of OSPRay.
+Note that this code is targeted at the 2.7.x branch of OSPRay.
 
 These bindings started just to try out [pybind11](https://github.com/pybind/pybind11),
 but they have quickly become pretty useful, as Pybind11 is an amazing little
@@ -34,14 +34,14 @@ function directly converts the NumPy array to a `Data` array of the same dimensi
 and data type. 
 
 The `data_constructor_vec()` function can be used for generating `Data` arrays of 
-`ospcommon::math::vec<n><t>` values. The last dimension of the passed array must 
+`vec<n><t>` values. The last dimension of the passed array must 
 be 2, 3 or 4. 
 
 When setting parameter values with `set_param()` certain Python values 
 are automatically converted to OSPRay types:
 
 - A 2/3/4-tuple of float or int is converted to a corresponding 
-  `ospcommon::math::vec<n>[i|f]` value. If there is at least one float
+  `vec<n>[i|f]` value. If there is at least one float
   in the tuple it is converted to a `vec<n>f` value, otherwise a `vec<n>i`
   value is produced.
   

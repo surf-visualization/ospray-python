@@ -4,8 +4,11 @@
 #include <pybind11/operators.h>
 #include <ospray/ospray_cpp.h>
 #include <ospray/version.h>
+#include <glm/mat4x4.hpp>
+#include <glm/gtx/transform.hpp>
 #include "enums.h"
 #include "conversion.h"
+#include "mat.h"
 //#include "testing.h"
 
 namespace py = pybind11;
@@ -844,15 +847,23 @@ set_param_numpy_array(T &self, const std::string &name, py::array &array)
     self.setParam(name, copied_data_from_numpy_array(array));
 }
 
-/*
-How to pass an affine3f?
 template<typename T>
 void
-set_param_affine3f(T &self, const std::string &name, const ospcommon::math::affine3f &value)
+set_param_mat4(T &self, const std::string &name, const glm::mat4 &value)
 {
-    self.setParam(name, value);
+    float xform[12];
+    affine3fv_from_mat4(xform, value);
+    /*
+    printf("mat4: ");
+    for (int r = 0; r < 4; r++)
+    {
+        for (int c = 0; c < 3; c++)
+            printf("%.6f ", xform[r*3+c]);
+        printf("\n");
+    }
+    */
+    self.setParam(name, OSP_AFFINE3F, xform);
 }
-*/
 
 template<typename T>
 void
@@ -933,7 +944,7 @@ declare_managedobject(py::module &m, const char *name)
         .def("set_param", &set_param_copied_data<T>)
         .def("set_param", &set_param_shared_data<T>)
         .def("set_param", &set_param_numpy_array<T>)
-        //.def("set_param", &set_param_affine3f<T>)
+        .def("set_param", &set_param_mat4<T>)
         .def("set_param", &set_param_material<T>)
         .def("set_param", &set_param_texture<T>)        
         .def("set_param", &set_param_transfer_function<T>)        
@@ -1000,21 +1011,31 @@ framebuffer_get(ospray::cpp::FrameBuffer &self, OSPFrameBufferChannel channel, p
     return res;
 }
 
-// affine3f
+// glm::mat4
 
-/*
-ospcommon::math::affine3f 
-make_rotate(const ospcommon::math::vec3f &v, const float &f)
-{
-    return ospcommon::math::affine3f::rotate(v, f);
-}
-
-ospcommon::math::affine3f 
+glm::mat4
 make_identity()
 {
-    return ospcommon::math::affine3f(ospcommon::math::one);
+    return glm::mat4(1.0f);
 }
-*/
+
+glm::mat4
+make_rotate(float degrees, float x, float y, float z)
+{
+    return glm::rotate(glm::radians(degrees), glm::vec3(x, y, z));
+}
+
+glm::mat4
+make_translate(float x, float y, float z)
+{
+    return glm::translate(glm::vec3(x, y, z));
+}
+
+glm::mat4
+make_scale(float x, float y, float z)
+{
+    return glm::scale(glm::vec3(x, y, z));
+}
 
 // Main module
  
@@ -1200,13 +1221,13 @@ PYBIND11_MODULE(ospray, m)
     
     // Utility
     
-    /*
-    py::class_<ospcommon::math::affine3f>(m, "affine3f")      
+    py::class_<glm::mat4>(m, "mat4")      
+        // Static
         .def_static("identity", &make_identity)
-        .def_static("scale", &ospcommon::math::affine3f::scale)
-        .def_static("translate", &ospcommon::math::affine3f::translate)
-        //.def_static("rotate", (ospcommon::math::affine3f (ospcommon::math::affine3f::*)(const ospcommon::math::vec3f &, const float &)) &ospcommon::math::affine3f::rotate)
-        .def_static("rotate", &make_rotate)        
+        .def_static("scale", &make_scale)
+        .def_static("translate", &make_translate)
+        .def_static("rotate", &make_rotate)   
+        // Member     
         .def(py::init<>())
         .def(-py::self)        
         .def(float() * py::self)
@@ -1219,7 +1240,6 @@ PYBIND11_MODULE(ospray, m)
         .def(py::self * py::self)
         .def(py::self / py::self)
     ;
-    */
     
     m.def("copied_data_constructor", &copied_data_from_numpy_array, py::arg());
     m.def("copied_data_constructor_vec", &copied_data_from_numpy_array_vec, py::arg());
