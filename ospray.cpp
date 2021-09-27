@@ -6,6 +6,7 @@
 #include <ospray/version.h>
 #include <glm/mat4x4.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "enums.h"
 #include "conversion.h"
 #include "mat.h"
@@ -1034,6 +1035,12 @@ make_rotate(float degrees, float x, float y, float z)
 }
 
 glm::mat4
+make_from_quaternion(float w, float x, float y, float z)
+{
+    return glm::mat4_cast(glm::quat(w, x, y, z));
+}
+
+glm::mat4
 make_translate(float x, float y, float z)
 {
     return glm::translate(glm::vec3(x, y, z));
@@ -1235,8 +1242,10 @@ PYBIND11_MODULE(ospray, m)
         .def_static("scale", &make_scale)
         .def_static("translate", &make_translate)
         .def_static("rotate", &make_rotate)   
+        .def_static("from_quaternion", &make_from_quaternion)
         // Member     
         .def(py::init<>())
+        .def("__repr__", print_mat4)
         .def(-py::self)        
         .def(float() * py::self)
         //.def(py::self / float())

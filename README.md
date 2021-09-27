@@ -145,6 +145,7 @@ which is a general 4x4 matrix. It is available as `ospray.mat4` and provides a s
 ```
 mat4.identity()
 mat4.rotate(angle_degrees, x, y, z)
+mat4.from_quaternion(w, x, y, z)
 mat4.translate(tx, ty, tz)
 mat4.scale(sx, sy, sz)
 ```
