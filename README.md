@@ -143,11 +143,27 @@ Since OSPRay does not provide a convenient matrix type for setting up such trans
 which is a general 4x4 matrix. It is available as `ospray.mat4` and provides a subset of GLM's `mat4` methods:
 
 ```
-mat4.identity()
-mat4.rotate(angle_degrees, x, y, z)
-mat4.from_quaternion(w, x, y, z)
-mat4.translate(tx, ty, tz)
-mat4.scale(sx, sy, sz)
+# Class methods (constructors)
+mat4.identity() -> mat4
+mat4.rotate(angle_degrees, x, y, z) -> mat4
+mat4.from_quaternion(w, x, y, z) -> mat4
+mat4.translate(tx, ty, tz) -> mat4
+mat4.scale(sx, sy, sz) -> mat4
+
+# Instance methods
+mat4.inverse() -> mat4
+mat4.transpose() -> mat4
+mat4.ptransform(x, y, z) -> x, y, z
+mat4.vtransform(vx, vy, vz) -> vx, vy, vz
+mat4.ntransform(nx, ny, nz) -> nx, ny, nz
+
+# Math
+-mat4 -> mat4
+float * mat4 -> mat4
+mat4 + mat4 -> mat4
+mat4 - mat4 -> mat4
+mat4 * mat4 -> mat4
+mat4 / mat4 -> mat4
 ```
 
 # Missing features and/or limitations
@@ -260,3 +276,5 @@ img = Image.frombuffer('RGBA', (W,H), colors, 'raw', 'RGBA', 0, 1)
 img = img.transpose(Image.FLIP_TOP_BOTTOM)
 img.save('colors.png')
 ```
+
+

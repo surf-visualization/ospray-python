@@ -4,9 +4,10 @@
 #include <pybind11/operators.h>
 #include <ospray/ospray_cpp.h>
 #include <ospray/version.h>
-#include <glm/mat4x4.hpp>
+#include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 #include "enums.h"
 #include "conversion.h"
 #include "mat.h"
@@ -1052,6 +1053,41 @@ make_scale(float x, float y, float z)
     return glm::scale(glm::vec3(x, y, z));
 }
 
+glm::mat4
+mat4_inverse(const glm::mat4& value)
+{
+    return glm::inverse(value);
+}
+
+glm::mat4
+mat4_transpose(const glm::mat4& value)
+{
+    return glm::transpose(value);
+}
+
+py::tuple
+mat4_ptransform(const glm::mat4& value, float x, float y, float z)
+{
+    glm::vec4 res = value * glm::vec4(x, y, z, 1);
+    return py::make_tuple(res.x, res.y, res.z);
+}
+
+py::tuple
+mat4_vtransform(const glm::mat4& value, float x, float y, float z)
+{
+    // Ignore translation part    
+    glm::vec3 res = value * glm::vec4(x, y, z, 0);
+    return py::make_tuple(res.x, res.y, res.z);
+}
+
+py::tuple
+mat4_ntransform(const glm::mat4& value, float x, float y, float z)
+{
+    glm::mat3 N = glm::inverseTranspose(glm::mat3(value));
+    glm::vec3 res = N * glm::vec3(x, y, z);
+    return py::make_tuple(res.x, res.y, res.z);
+}
+
 // Main module
  
 PYBIND11_MODULE(ospray, m) 
@@ -1256,6 +1292,11 @@ PYBIND11_MODULE(ospray, m)
         .def(py::self - py::self)
         .def(py::self * py::self)
         .def(py::self / py::self)
+        .def("inverse", mat4_inverse)
+        .def("transpose", mat4_transpose)
+        .def("ptransform", mat4_ptransform)
+        .def("vtransform", mat4_vtransform)
+        .def("ntransform", mat4_ntransform)
     ;
     
     m.def("copied_data_constructor", &copied_data_from_numpy_array, py::arg());
@@ -1279,4 +1320,5 @@ PYBIND11_MODULE(ospray, m)
     // Usage of ospray_testing unfortunately isn't easy to provide for a binary build, see https://github.com/ospray/ospray/issues/419
     //define_testing(m);
 }
+
 

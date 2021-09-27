@@ -177,7 +177,7 @@ print('BOUND', bound[0], bound[1])
 
 diagonal = numpy.linalg.norm(bound[1] - bound[0])
 radius = 0.5*diagonal
-distance = radius / math.sin(0.5*math.radians(FOVY)) * 1.05
+distance = radius / math.tan(0.5*math.radians(FOVY)) * 1.05
 print('diagonal', diagonal)
 print('radius', radius)
 print('distance', distance)
