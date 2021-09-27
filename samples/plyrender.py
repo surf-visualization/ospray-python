@@ -41,7 +41,7 @@ subdivision_level = 5.0
 display_result = False
 
 def usage():
-    print('Usage: %s [options] file.ply' % sys.argv[0])
+    print('Usage: %s [options] file.ply|file.obj|file.stl|file.pdb' % sys.argv[0])
     print()
     print('-d type          Use debug renderer of specific type')
     print('-l subdivlevel   Subdivision level (default: %f)' % subdivision_level)

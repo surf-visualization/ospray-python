@@ -275,9 +275,9 @@ def read_pdb(fname, radius=1):
         opacities = numpy.ones(N, 'float32')
         colors = numpy.c_[ colors, opacities ]
         
-        positions[:9].tofile('pos9.bin')
-        colors[:9].tofile('col9.bin')
-        radii[:9].tofile('radii9.bin')
+        #positions[:9].tofile('pos9.bin')
+        #colors[:9].tofile('col9.bin')
+        #radii[:9].tofile('radii9.bin')
         
         assert positions.shape[0] == colors.shape[0]
 
@@ -289,7 +289,5 @@ def read_pdb(fname, radius=1):
         gmodel = ospray.GeometricModel(spheres)
         gmodel.set_param('color', ospray.copied_data_constructor_vec(colors))
         gmodel.commit()
-        
-        
+                
         return gmodel
-
