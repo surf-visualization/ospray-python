@@ -140,7 +140,14 @@ with (light := ospray.Light('ambient')):
 
 Some parameters on OSPRay objects are of type `affine3f`, most notably the often-used `transform` values on Instances.
 Since OSPRay does not provide a convenient matrix type for setting up such transformation we wrap GLM's `mat4` type,
-which is a general 4x4 matrix. It is available as `ospray.mat4` and provides a subset of GLM's `mat4` methods.
+which is a general 4x4 matrix. It is available as `ospray.mat4` and provides a subset of GLM's `mat4` methods:
+
+```
+mat4.identity()
+mat4.rotate(angle_degrees, x, y, z)
+mat4.translate(tx, ty, tz)
+mat4.scale(sx, sy, sz)
+```
 
 # Missing features and/or limitations
 
