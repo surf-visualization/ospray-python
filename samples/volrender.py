@@ -11,6 +11,8 @@ Even though scene setup appears to be correct
 # E.g.
 # ./samples/volrender.py -s 1,1,2 -d 256,256,84 -v 0,255 -t ~/models/brain/carnival.trn ~/models/brain/brain256_256_84_8.raw 
 # ./samples/volrender.py -i 128 -s 1,1,2 -d 256,256,84 -v 0,255 -t ~/models/brain/carnival.trn ~/models/brain/brain256_256_84_8.raw 
+# ./samples/volrender.py -c 'z<0.035' -i 4 -D u -s 0.009,0.009,0.005 u_00659265.h5
+# ./samples/volrender.py -b 0,0,0 -c 'z<0.035' -D u -t tf2.trn -s 0.009,0.009,0.005 u_00659265.h5
 import sys, getopt, os, time
 scriptdir = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.join(scriptdir, '..'))
@@ -66,6 +68,7 @@ def usage():
     print('Options:')
     print(' -a anisotropy                   Volume anisotropy')
     print(' -b r,g,b[,a]                    Background color')
+    print(' -c [xyz][<>]<value>             Set clip plane')
     print(' -d xdim,ydim,zdim               .raw file dimensions')
     print(' -D dataset_name                 HDF5 dataset name')
     print(' -f axis,minidx,maxidx,value     Fill part of the volume with a specific value')
@@ -84,6 +87,7 @@ def usage():
 
 anisotropy = 0.0
 bgcolor = (1.0, 1.0, 1.0, 1.0)
+clipping_gmodel = None
 dimensions = None
 dataset_name = None
 tf_mode = 'default'
@@ -97,7 +101,7 @@ value_range = None
 display_result = False
 
 try:
-    optlist, args = getopt.getopt(argv[1:], 'a:b:d:D:f:i:I:o:ps:S:t:v:x')
+    optlist, args = getopt.getopt(argv[1:], 'a:b:c:d:D:f:i:I:o:ps:S:t:v:x')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -112,6 +116,31 @@ for o, a in optlist:
         if len(bgcolor) == 3:
             bgcolor.append(1.0)
         bgcolor = tuple(bgcolor)
+    elif o == '-c':
+        assert a[0] in ['x', 'y', 'z']
+        axis = a[0]
+        a = a[1:]        
+        if a[0] == '<':            
+            value = float(a[1:])            
+            invert_clip_plane_normal = True
+        elif a[0] == '>':
+            value = float(a[1:])
+            invert_clip_plane_normal = False
+        else:
+            assert False and "Invalid clip plane format"
+        if axis == 'x':
+            clip_plane_coefficients = (-1, 0, 0, -value)
+        elif axis == 'y':
+            clip_plane_coefficients = (0, -1, 0, -value)
+        else:
+            clip_plane_coefficients = (0, 0, -1, -value)
+        c = numpy.array([clip_plane_coefficients], 'float32')        
+        g = ospray.Geometry('plane')        
+        g.set_param('plane.coefficients', ospray.copied_data_constructor_vec(c))
+        g.commit()
+        clipping_gmodel = ospray.GeometricModel(g)
+        clipping_gmodel.set_param('invertNormals', invert_clip_plane_normal)
+        clipping_gmodel.commit()
     elif o == '-d':
         dimensions = tuple(map(int, a.split(',')))
         assert len(dimensions) == 3
@@ -140,7 +169,7 @@ for o, a in optlist:
             tf_mode = 'file'
             tf_file = a
         else:
-            assert a in ['default', 'gradual']
+            assert a in ['default', 'linear']
             tf_mode = a
     elif o == '-v':
         value_range = tuple(map(float, a.split(',')))
@@ -257,7 +286,48 @@ volume.commit()
 
 # TF
 
-T = 16
+def generate_tf(values, colors, opacities, T=16):
+    """
+    The values, colors and opacities arrays together sparsely define
+    the transfer function.
+    """
+
+    assert value_range is not None
+    
+    print(values)
+    print(colors)
+    print(opacities)
+        
+    P = values.shape[0]
+    assert colors.shape[0] == P and colors.shape[1] == 3
+    assert opacities.shape[0] == P
+    
+    # Generate equidistant TF from sparse specification
+    tfcolors = numpy.zeros((T,3), dtype=numpy.float32)
+    tfopacities = numpy.zeros(T, dtype=numpy.float32)
+
+    idx = 0
+    pos = 0.0
+    pos_step = value_range[-1]/(T-1)
+    print(pos_step)
+    while idx < T:
+        print('value', pos)
+        valueidx = numpy.interp(pos, values, numpy.arange(P))
+            
+        lowidx = int(valueidx)
+        highidx = min(lowidx + 1, P-1)
+        factor = valueidx - lowidx
+        
+        print(valueidx, lowidx, highidx, factor)
+
+        tfcolors[idx] = (1-factor) * colors[lowidx] + factor * colors[highidx]
+        tfopacities[idx] = (1-factor) * opacities[lowidx] + factor * opacities[highidx]
+        
+        idx += 1
+        pos += pos_step
+        
+    return tfcolors, tfopacities
+    
 
 if isovalue is not None:
     # Fixed color and opacity
@@ -265,22 +335,30 @@ if isovalue is not None:
     tfopacities = numpy.array([1], dtype=numpy.float32)
     
 elif tf_mode == 'file':
-    # Read a .trn file, lines of the form
-    # <value> <r> <g> <b> <o>
-    # All values in [0,255]
-    # XXX only works for volume values in [0,255], as the -v option is not taken into account
-    lines = [l.strip() for l in open(tf_file, 'rt').readlines() if l.strip() != '']
+    # Read a .trn file
+    # <minval> <maxval>
+    # <value> <r> <g> <b> <a>
+    lines = [l.strip() for l in open(tf_file, 'rt').readlines() if l.strip() != '' and l[0] != '#']    
+    
+    if value_range is None:
+        value_range = list(map(float, lines[0].split(' ')))
+    lines = lines[1:]
     
     N = len(lines)
-    assert N == 256
+    assert N >= 2
     
-    tfcolors = numpy.zeros((N,3), dtype=numpy.float32)
-    tfopacities = numpy.zeros(N, dtype=numpy.float32)
+    values = numpy.zeros(N, dtype=numpy.float32)
+    colors = numpy.zeros((N,3), dtype=numpy.float32)
+    opacities = numpy.zeros(N, dtype=numpy.float32)
     
     for idx, line in enumerate(lines):
-        pp = list(map(int, line.split()))
-        tfcolors[idx] = pp[1]/255, pp[2]/255, pp[3]/255
-        tfopacities[idx] = pp[4]/255
+        pp = list(map(float, line.split()))
+        assert len(pp) == 5
+        values[idx] = pp[0]
+        colors[idx] = (pp[1], pp[2], pp[3])
+        opacities[idx] = pp[4]
+        
+    tfcolors, tfopacities = generate_tf(values, colors, opacities)    
     
 elif tf_mode == 'linear':
     # Simple linear TF
@@ -288,11 +366,8 @@ elif tf_mode == 'linear':
     tfopacities = numpy.array([0, 1], dtype=numpy.float32)
     
 elif tf_mode == 'default':
-    # Generate equidistant TF from sparse specification
-    tfcolors = numpy.zeros((T,3), dtype=numpy.float32)
-    tfopacities = numpy.zeros(T, dtype=numpy.float32)
 
-    positions = numpy.array([
+    values = numpy.array([
         0, 0.318, 0.462, 0.546, 1   
     ], dtype=numpy.float32)
 
@@ -307,41 +382,17 @@ elif tf_mode == 'default':
     opacities = numpy.array([
         1, 1, 1, 0, 0
     ], dtype=numpy.float32)
-
-    P = len(positions)
-
-    idx = 0
-    pos = 0.0
-    while idx < T:
-        value = numpy.interp(pos, positions, numpy.arange(P))
-            
-        lowidx = int(value)
-        highidx = min(lowidx + 1, P-1)
-        factor = value - lowidx
-        
-        print(value, lowidx, highidx, factor)
-
-        tfcolors[idx] = (1-factor) * colors[lowidx] + factor * colors[highidx]
-        tfopacities[idx] = (1-factor) * opacities[lowidx] + factor * opacities[highidx]
-        
-        idx += 1
-        pos += 1.0/(T-1)
+    
+    tfcolors, tfopacities = generate_tf(values, colors, opacities)
     
 print('tfcolors', tfcolors.shape)
 print('tfopacities', tfopacities.shape)
+
+print('TF:')
+print(value_range)
+print(tfcolors)
+print(tfopacities)
     
-transfer_function = ospray.TransferFunction('piecewiseLinear')
-transfer_function.set_param('color', ospray.copied_data_constructor_vec(tfcolors))
-transfer_function.set_param('opacity', tfopacities)
-transfer_function.set_param('valueRange', tuple(value_range))
-transfer_function.commit()
-
-vmodel = ospray.VolumetricModel(volume)
-vmodel.set_param('transferFunction', transfer_function)
-#vmodel.set_param('densityScale', 0.1)
-vmodel.set_param('anisotropy', anisotropy)
-vmodel.commit()
-
 if isovalue is not None:
 
     # Isosurface rendered
@@ -349,7 +400,7 @@ if isovalue is not None:
     isovalues = numpy.array([isovalue], dtype=numpy.float32)
     isosurface = ospray.Geometry('isosurface')
     isosurface.set_param('isovalue', isovalues)
-    isosurface.set_param('volume', vmodel)
+    isosurface.set_param('volume', volume)
     isosurface.commit()
 
     material = ospray.Material(RENDERER, 'obj')
@@ -358,11 +409,13 @@ if isovalue is not None:
     material.commit()
 
     gmodel = ospray.GeometricModel(isosurface)
-    gmodel.set_param('material', material)
+    #gmodel.set_param('material', material)
     gmodel.commit()
 
     ggroup = ospray.Group()
     ggroup.set_param('geometry', [gmodel])
+    if clipping_gmodel is not None:
+        ggroup.set_param('clippingGeometry', [clipping_gmodel])
     ggroup.commit()
 
     ginstance = ospray.Instance(ggroup)
@@ -376,8 +429,22 @@ else:
     
     # Volume rendered
 
+    transfer_function = ospray.TransferFunction('piecewiseLinear')
+    transfer_function.set_param('color', ospray.copied_data_constructor_vec(tfcolors))
+    transfer_function.set_param('opacity', ospray.copied_data_constructor(tfopacities))
+    transfer_function.set_param('valueRange', tuple(value_range))
+    transfer_function.commit()
+
+    vmodel = ospray.VolumetricModel(volume)
+    vmodel.set_param('transferFunction', transfer_function)
+    #vmodel.set_param('densityScale', 0.1)
+    vmodel.set_param('anisotropy', anisotropy)
+    vmodel.commit()
+
     vgroup = ospray.Group()
     vgroup.set_param('volume', [vmodel])
+    if clipping_gmodel is not None:
+        vgroup.set_param('clippingGeometry', [clipping_gmodel])
     vgroup.commit()
 
     vinstance = ospray.Instance(vgroup)
@@ -434,7 +501,7 @@ camera.commit()
 
 # Lights
 
-if RENDERER == 'pathtracer':
+if RENDERER == 'pathtracer' or isovalue is not None:
 
     light1 = ospray.Light('ambient')
     light1.set_param('color', (1.0, 1.0, 1.0))

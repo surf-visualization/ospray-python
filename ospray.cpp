@@ -888,6 +888,13 @@ set_param_transfer_function(T &self, const std::string &name, const ospray::cpp:
 
 template<typename T>
 void
+set_param_volume(T &self, const std::string &name, const ospray::cpp::Volume &value)
+{
+    self.setParam(name, value);
+}
+
+template<typename T>
+void
 set_param_volumetric_model(T &self, const std::string &name, const ospray::cpp::VolumetricModel &value)
 {
     self.setParam(name, value);
@@ -946,9 +953,10 @@ declare_managedobject(py::module &m, const char *name)
         .def("set_param", &set_param_numpy_array<T>)
         .def("set_param", &set_param_mat4<T>)
         .def("set_param", &set_param_material<T>)
-        .def("set_param", &set_param_texture<T>)        
-        .def("set_param", &set_param_transfer_function<T>)        
-        .def("set_param", &set_param_volumetric_model<T>)        
+        .def("set_param", &set_param_texture<T>)
+        .def("set_param", &set_param_transfer_function<T>)
+        .def("set_param", &set_param_volume<T>)
+        .def("set_param", &set_param_volumetric_model<T>)
         .def("remove_param", &remove_param<T>) 
         .def("commit", &T::commit)
         .def("get_bounds", &get_bounds<T>)
