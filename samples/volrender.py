@@ -294,9 +294,9 @@ def generate_tf(values, colors, opacities, T=16):
 
     assert value_range is not None
     
-    print(values)
-    print(colors)
-    print(opacities)
+    #print(values)
+    #print(colors)
+    #print(opacities)
         
     P = values.shape[0]
     assert colors.shape[0] == P and colors.shape[1] == 3
@@ -309,16 +309,14 @@ def generate_tf(values, colors, opacities, T=16):
     idx = 0
     pos = 0.0
     pos_step = value_range[-1]/(T-1)
-    print(pos_step)
     while idx < T:
-        print('value', pos)
         valueidx = numpy.interp(pos, values, numpy.arange(P))
             
         lowidx = int(valueidx)
         highidx = min(lowidx + 1, P-1)
         factor = valueidx - lowidx
         
-        print(valueidx, lowidx, highidx, factor)
+        #print(value, valueidx, lowidx, highidx, factor)
 
         tfcolors[idx] = (1-factor) * colors[lowidx] + factor * colors[highidx]
         tfopacities[idx] = (1-factor) * opacities[lowidx] + factor * opacities[highidx]
@@ -385,13 +383,13 @@ elif tf_mode == 'default':
     
     tfcolors, tfopacities = generate_tf(values, colors, opacities)
     
-print('tfcolors', tfcolors.shape)
-print('tfopacities', tfopacities.shape)
+#print('tfcolors', tfcolors.shape)
+#print('tfopacities', tfopacities.shape)
 
-print('TF:')
-print(value_range)
-print(tfcolors)
-print(tfopacities)
+#print('TF:')
+#print(value_range)
+#print(tfcolors)
+#print(tfopacities)
     
 if isovalue is not None:
 
