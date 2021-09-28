@@ -296,7 +296,7 @@ copied_data_from_numpy_array_vec(const py::array& array)
         return ospray::cpp::CopiedData();
     }
     
-    const int vecdim = array.shape(ndim-1);
+    const int vecdim = ndim > 1 ? array.shape(ndim-1) : array.shape(0);
     
     if (vecdim < 2 || vecdim > 4)
     {
@@ -310,11 +310,14 @@ copied_data_from_numpy_array_vec(const py::array& array)
     vec3ul num_items { 1, 1, 1 };
     vec3ul byte_stride { 0, 0, 0 };
 
-    num_items.x = array.shape(0);
-    if (ndim > 2)
-        num_items.y = array.shape(1);
-    if (ndim > 3)
-        num_items.z = array.shape(2);
+    if (ndim > 1)
+    {
+        num_items.x = array.shape(0);
+        if (ndim > 2)
+            num_items.y = array.shape(1);
+        if (ndim > 3)
+            num_items.z = array.shape(2);
+    }
 
     if (vecdim == 2)
     {
