@@ -210,7 +210,7 @@ def read_obj(fname, force_subdivision_mesh=False):
         
         
         
-def read_pdb(fname, radius=1):
+def read_pdb(fname, radius=1, apply_colors=True):
     """Bare-bones pdb reader, ATOM only"""
     
     COLORS = {
@@ -261,7 +261,8 @@ def read_pdb(fname, radius=1):
                 if element != '':
                     print('No color for element %s' % element)
                     
-            colors.append((hexcol[0]/255, hexcol[1]/255, hexcol[2]/255))
+            if apply_colors:
+                colors.append((hexcol[0]/255, hexcol[1]/255, hexcol[2]/255))
                 
             radii.append(radius)
             
@@ -270,16 +271,12 @@ def read_pdb(fname, radius=1):
         positions = numpy.array(positions, numpy.float32)
         radii = numpy.array(radii, numpy.float32)
         
-        colors = numpy.array(colors, numpy.float32)
-        #print(colors.shape, numpy.min(colors), numpy.max(colors))
-        opacities = numpy.ones(N, 'float32')
-        colors = numpy.c_[ colors, opacities ]
-        
-        #positions[:9].tofile('pos9.bin')
-        #colors[:9].tofile('col9.bin')
-        #radii[:9].tofile('radii9.bin')
-        
-        assert positions.shape[0] == colors.shape[0]
+        if apply_colors:
+            colors = numpy.array(colors, numpy.float32)
+            #print(colors.shape, numpy.min(colors), numpy.max(colors))
+            opacities = numpy.ones(N, 'float32')
+            colors = numpy.c_[ colors, opacities ]            
+            assert positions.shape[0] == colors.shape[0]
 
         spheres = ospray.Geometry('sphere')
         spheres.set_param('sphere.position', ospray.copied_data_constructor_vec(positions))
@@ -287,7 +284,8 @@ def read_pdb(fname, radius=1):
         spheres.commit()
         
         gmodel = ospray.GeometricModel(spheres)
-        gmodel.set_param('color', ospray.copied_data_constructor_vec(colors))
+        if apply_colors:
+            gmodel.set_param('color', ospray.copied_data_constructor_vec(colors))
         gmodel.commit()
                 
         return gmodel
