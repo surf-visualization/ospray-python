@@ -210,7 +210,7 @@ def read_obj(fname, force_subdivision_mesh=False):
         
         
         
-def read_pdb(fname, radius=1, apply_colors=True):
+def read_pdb(fname, radius=1, apply_colors=True, stats=None):
     """Bare-bones pdb reader, ATOM only"""
     
     COLORS = {
@@ -267,6 +267,9 @@ def read_pdb(fname, radius=1, apply_colors=True):
             radii.append(radius)
             
             N += 1
+
+        if stats is not None:
+            stats['count'] = N
             
         positions = numpy.array(positions, numpy.float32)
         radii = numpy.array(radii, numpy.float32)
