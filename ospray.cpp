@@ -188,10 +188,10 @@ copied_data_from_numpy_array(const py::array& array)
 
     if (py::isinstance<py::array_t<float>>(array))
         return ospray::cpp::CopiedData(array.data(), OSP_FLOAT, num_items, byte_stride);
-    /*else if (py::isinstance<py::array_t<double>>(array))
-        return ospray::cpp::CopiedData(array.data(), OSP_DOUBLE, num_items, byte_stride);*/
-    /*else if (py::isinstance<py::array_t<int8_t>>(array))
-        return ospray::cpp::CopiedData(array.data(), OSP_CHAR, num_items, byte_stride);*/
+    else if (py::isinstance<py::array_t<double>>(array))
+        return ospray::cpp::CopiedData(array.data(), OSP_DOUBLE, num_items, byte_stride);
+    else if (py::isinstance<py::array_t<int8_t>>(array))
+        return ospray::cpp::CopiedData(array.data(), OSP_CHAR, num_items, byte_stride);
     else if (py::isinstance<py::array_t<uint8_t>>(array))
         return ospray::cpp::CopiedData(array.data(), OSP_UCHAR, num_items, byte_stride);
     /*else if (py::isinstance<py::array_t<int16_t>>(array))
@@ -245,10 +245,10 @@ shared_data_from_numpy_array(const py::array& array)
 
     if (py::isinstance<py::array_t<float>>(array))
         return ospray::cpp::SharedData(array.data(), OSP_FLOAT, num_items, byte_stride);
-    /*else if (py::isinstance<py::array_t<double>>(array))
-        return ospray::cpp::SharedData(array.data(), OSP_DOUBLE, num_items, byte_stride);*/
-    /*else if (py::isinstance<py::array_t<int8_t>>(array))
-        return ospray::cpp::SharedData(array.data(), OSP_CHAR, num_items, byte_stride);*/
+    else if (py::isinstance<py::array_t<double>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_DOUBLE, num_items, byte_stride);
+    else if (py::isinstance<py::array_t<int8_t>>(array))
+        return ospray::cpp::SharedData(array.data(), OSP_CHAR, num_items, byte_stride);
     else if (py::isinstance<py::array_t<uint8_t>>(array))
         return ospray::cpp::SharedData(array.data(), OSP_UCHAR, num_items, byte_stride);
     /*else if (py::isinstance<py::array_t<int16_t>>(array))
