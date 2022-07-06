@@ -1,4 +1,4 @@
-camera_configuration#!/usr/bin/env python
+#!/usr/bin/env python
 """
 Isosurface rendering results in black image and warning
 
