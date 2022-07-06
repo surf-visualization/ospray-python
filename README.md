@@ -4,7 +4,7 @@ These are Python 3.x bindings for [OSPRay](https://www.ospray.org).
 More specifically, they wrap the OSPRay C++ API (plus a few C API routines).
 
 Most OSPRay objects can be created from Python, including setting 
-parameters on those objects. The latters is made possible by the general
+parameters on those objects. The latter is made possible by the general
 method for setting object parameters in OSPRay. But see the notes on data 
 type mapping below.
 
@@ -20,7 +20,7 @@ Dependencies:
 - [GLM](https://github.com/g-truc/glm)
 - [OSPRay](https://www.ospray.org)
 
-## Conventions 
+## Conventions
 
 - One Python class per OSPRay type, e.g. `Material`, `Renderer` and `Geometry`
 - Python-style method naming, so `set_param()` in Python for `setParam()` in C++
