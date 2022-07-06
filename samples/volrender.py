@@ -14,6 +14,7 @@ Even though scene setup appears to be correct
 # ./samples/volrender.py -c 'z<0.035' -i 4 -D u -s 0.009,0.009,0.005 u_00659265.h5
 # ./samples/volrender.py -b 0,0,0 -c 'z<0.035' -D u -t tf2.trn -s 0.009,0.009,0.005 u_00659265.h5
 import sys, getopt, os, time
+import importlib.util
 from math import sqrt, tan, atan, radians, degrees
 scriptdir = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.join(scriptdir, '..'))
@@ -63,6 +64,27 @@ device.commit()
 
 # Parse arguments
 
+anisotropy = 0.0
+bgcolor = (1.0, 1.0, 1.0, 1.0)
+show_domain_bbox = False
+clipping_gmodel = None
+dimensions = None
+dataset_name = None
+tf_mode = 'default'
+tf_file = None
+image_file = 'volume.png'
+isovalue = None
+grid_spacing = numpy.ones(3, dtype=numpy.float32)
+samples = 4
+set_value = None
+value_range = None
+display_result = False
+show_histogram = False
+camera_configuration = None
+camera_fov_string = None
+extra_scene_script = None
+
+
 def usage():
     print('%s [options] file.raw|file.h5|file.hdf5' % sys.argv[0])
     print()
@@ -82,35 +104,17 @@ def usage():
     print(' -o output-image                 Output file (default: volume.png)')
     print(' -p                              Use pathtracer (default: use scivis renderer)')
     print(' -s xs,ys,zs                     Grid spacing')
-    print(' -S samples                      Samples per pixel')
+    print(' -S samples                      Samples per pixel (default: %d)' % samples)
     print(' -t <default>|<linear>|<file.trn> Set transfer function')
     print(' -v minval,maxval                Volume value range')
     print(' -x                              Display image after rendering (uses tkinter)')
+    print(' -X script.py                    Execute script to set up extra scene elements')
     print()
     print('When reading a .raw file 8-bit unsigned integers are assumed')
     print()
 
-anisotropy = 0.0
-bgcolor = (1.0, 1.0, 1.0, 1.0)
-show_domain_bbox = False
-clipping_gmodel = None
-dimensions = None
-dataset_name = None
-tf_mode = 'default'
-tf_file = None
-image_file = 'volume.png'
-isovalue = None
-grid_spacing = numpy.ones(3, dtype=numpy.float32)
-samples = 4
-set_value = None
-value_range = None
-display_result = False
-show_histogram = False
-camera_configuration = None
-camera_fov_string = None
-
 try:
-    optlist, args = getopt.getopt(argv[1:], 'a:b:Bc:C:d:D:f:Hi:I:o:ps:S:t:v:x')
+    optlist, args = getopt.getopt(argv[1:], 'a:b:Bc:C:d:D:f:Hi:I:o:ps:S:t:v:xX:')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -208,6 +212,8 @@ for o, a in optlist:
         value_range = tuple(map(float, a.split(',')))
     elif o == '-x':
         display_result = True
+    elif o == '-X':
+        extra_scene_script = a
 
 if len(args) == 0:
     usage()
@@ -573,6 +579,21 @@ if show_domain_bbox:
     instance = ospray.Instance(bbox_group)
     instance.commit()
     instances.append(instance)
+    
+# User-provided scene elements
+
+if extra_scene_script is not None:    
+    
+    spec = importlib.util.spec_from_file_location('extra_scene', extra_scene_script)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules['extra_scene'] = mod
+    spec.loader.exec_module(mod)
+        
+    extra_instances = []
+    mod.generate_instances(extra_instances)
+    print('Have %d user-generated instances' % len(extra_instances))
+    
+    instances.extend(extra_instances)
 
 # World
 
@@ -639,12 +660,16 @@ if RENDERER == 'pathtracer' or isovalue is not None:
     light1.set_param('intensity', 0.3)
     light1.commit()
 
-    light2 = ospray.Light('distant')
-    light2.set_param('direction', tuple(camera_configuration['direction'].tolist()))
+    light2 = ospray.Light('distant') # sunSky
+    # 2.8+ allows lights to be part of a group, and so can have a transform
+    light2.set_param('direction', (0.0, 0.0, -1.0))
     light2.set_param('intensity', 0.7)
+    #light2.set_param('up', (0.0, 0.0, 1.0)) # sunSky
     light2.commit()
 
     lights = [light1, light2]
+    #lights = [light1]
+    #lights = [light2]
 
     world.set_param('light', lights)
     world.commit()
@@ -661,9 +686,9 @@ renderer = ospray.Renderer(RENDERER)
 renderer.set_param('backgroundColor', bgcolor)
 
 #if isovalue is not None:
-#    renderer.set_param('bgColor', 1.0)
+#    renderer.set_param('backgroundColor', 1.0)
 #else:
-#    renderer.set_param('bgColor', (0.0, 0.0, 0.0))
+#    renderer.set_param('backgroundColor', (0.0, 0.0, 0.0))
 #    #renderer.set_param('backplate', backplate)
 if RENDERER == 'scivis':
     renderer.set_param('volumeSamplingRate', 1.0)

@@ -100,6 +100,9 @@ def read_ply(fname, force_subdivision_mesh=False):
         mesh.set_param('index', ospray.copied_data_constructor_vec(indices))
         # Get a OSPRAY STATUS: ospray::Mesh ignoring 'index' array with wrong element type (should be vec3ui)
         # when passing a pure-quad index array
+        if 'normals' in plymesh:
+            normals = plymesh['normals'].reshape((-1, 3))
+            mesh.set_param('vertex.normal', ospray.copied_data_constructor_vec(normals))
         
     elif mesh_type == 'mixed-tris-and-quads' and not force_subdivision_mesh:
         mesh = ospray.Geometry('mesh')
@@ -115,7 +118,7 @@ def read_ply(fname, force_subdivision_mesh=False):
                 new_indices.extend(indices[first:first+4])
             first += n
             
-        new_indices = numpy.array(new_indices, dtype=numpy.uint32).reshape((-1, 4))    
+        new_indices = numpy.array(new_indices, dtype=numpy.uint32).reshape((-1, 4))
         mesh.set_param('index', ospray.copied_data_constructor_vec(new_indices))
     else:
         # Use subdivision surface
