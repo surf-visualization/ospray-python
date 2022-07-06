@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+camera_configuration#!/usr/bin/env python
 """
 Isosurface rendering results in black image and warning
 
@@ -14,6 +14,7 @@ Even though scene setup appears to be correct
 # ./samples/volrender.py -c 'z<0.035' -i 4 -D u -s 0.009,0.009,0.005 u_00659265.h5
 # ./samples/volrender.py -b 0,0,0 -c 'z<0.035' -D u -t tf2.trn -s 0.009,0.009,0.005 u_00659265.h5
 import sys, getopt, os, time
+from math import sqrt, tan, atan, radians, degrees
 scriptdir = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.join(scriptdir, '..'))
 
@@ -68,17 +69,21 @@ def usage():
     print('Options:')
     print(' -a anisotropy                   Volume anisotropy')
     print(' -b r,g,b[,a]                    Background color')
+    print(' -B                              Show domain bounding box')
     print(' -c [xyz][<>]<value>             Set clip plane')
+    print(' -C px,py,pz,lx,ly,lz,x|y|z,h|v<fov>')
+    print('                                 Set camera (position, lookat, up axis, horizontal|vertical fov)')
     print(' -d xdim,ydim,zdim               .raw file dimensions')
     print(' -D dataset_name                 HDF5 dataset name')
-    print(' -f axis,minidx,maxidx,value     Fill part of the volume with a specific value')
-    print(' -t <default>|<linear>|<file.trn> Set transfer function')
+    print(' -f axis,minidx,maxidx,value     Fill part of the volume with a specific value')    
+    print(' -H                              Print histogram of volume data')
     print(' -i isovalue                     Render as isosurface instead of volume')
     print(' -I width,height                 Image resolution')
     print(' -o output-image                 Output file (default: volume.png)')
     print(' -p                              Use pathtracer (default: use scivis renderer)')
     print(' -s xs,ys,zs                     Grid spacing')
     print(' -S samples                      Samples per pixel')
+    print(' -t <default>|<linear>|<file.trn> Set transfer function')
     print(' -v minval,maxval                Volume value range')
     print(' -x                              Display image after rendering (uses tkinter)')
     print()
@@ -87,6 +92,7 @@ def usage():
 
 anisotropy = 0.0
 bgcolor = (1.0, 1.0, 1.0, 1.0)
+show_domain_bbox = False
 clipping_gmodel = None
 dimensions = None
 dataset_name = None
@@ -99,9 +105,12 @@ samples = 4
 set_value = None
 value_range = None
 display_result = False
+show_histogram = False
+camera_configuration = None
+camera_fov_string = None
 
 try:
-    optlist, args = getopt.getopt(argv[1:], 'a:b:c:d:D:f:i:I:o:ps:S:t:v:x')
+    optlist, args = getopt.getopt(argv[1:], 'a:b:Bc:C:d:D:f:Hi:I:o:ps:S:t:v:x')
 except getopt.GetoptError as err:
     print(err)
     usage()
@@ -116,6 +125,8 @@ for o, a in optlist:
         if len(bgcolor) == 3:
             bgcolor.append(1.0)
         bgcolor = tuple(bgcolor)
+    elif o == '-B':
+        show_domain_bbox = True
     elif o == '-c':
         assert a[0] in ['x', 'y', 'z']
         axis = a[0]
@@ -141,6 +152,26 @@ for o, a in optlist:
         clipping_gmodel = ospray.GeometricModel(g)
         clipping_gmodel.set_param('invertNormals', invert_clip_plane_normal)
         clipping_gmodel.commit()
+    elif o == '-C':
+        pp = a.split(',')
+        assert len(pp) == 8
+        position = numpy.array(pp[:3], 'float32')
+        lookat = numpy.array(pp[3:6], 'float32')
+        direction = lookat - position
+        upaxis = pp[6]
+        assert upaxis in ['x','y','z']
+        hv = pp[7][0]
+        assert hv in ['h', 'v']
+        camera_fov_string = pp[7]
+        camera_configuration = {
+            'position': position,
+            'direction': direction, 
+            'up': { 
+                'x': numpy.array((1., 0., 0.), 'float32'),
+                'y': numpy.array((0., 1., 0.), 'float32'),
+                'z': numpy.array((0., 0., 1.), 'float32')
+            }[upaxis]
+        }        
     elif o == '-d':
         dimensions = tuple(map(int, a.split(',')))
         assert len(dimensions) == 3
@@ -150,6 +181,8 @@ for o, a in optlist:
         pp = a.split(',')
         assert len(pp) == 4
         set_value = (int(pp[0]), int(pp[1]), int(pp[2]), float(pp[3]))     
+    elif o == '-H':
+        show_histogram = True
     elif o == '-i':
         isovalue = float(a)
     elif o == '-I':
@@ -181,6 +214,18 @@ if len(args) == 0:
     sys.exit(2)
     
 volfile = args[0]
+
+if camera_fov_string is not None:
+    # Compute V fov, using aspect ratio
+    hv = camera_fov_string[0]
+    assert hv in ['h', 'v']
+    fov = float(camera_fov_string[1:])
+    if hv == 'h':
+        ipw = 2*tan(radians(fov/2))
+        aspect = W / H
+        iph = ipw / aspect
+        fov = degrees(2*atan(iph/2))
+    camera_configuration['vfov'] = fov
 
 # Read file
 
@@ -253,13 +298,20 @@ elif ext in ['.vtk', '.vti']:
     value_range = tuple(map(float, (numpy.min(data), numpy.max(data))))
     
 else:
-    raise ValueError('Unknown file extension "%s"' % ext)    
+    raise ValueError('Unknown file extension "%s"' % ext)   
+
+minx, miny, minz = extent[0]
+maxx, maxy, maxz = extent[1]
+diagonal_size = sqrt((maxx-minx)**2 + (maxy-miny)**2 + (maxz-minz)**2)
 
 print('volume data', data.shape, data.dtype)
 print('dimensions', dimensions)
 print('value range', value_range)
 print('spacing', grid_spacing)
 print('extent', extent)
+
+if show_histogram:
+    print(numpy.histogram(data, bins=30))
 
 assert value_range is not None and 'Set value range with -v min,max'
 
@@ -328,7 +380,7 @@ def generate_tf(values, colors, opacities, T=16):
     
 
 if isovalue is not None:
-    # Fixed color and opacity
+    # Fixed color and opacity for isosurface
     tfcolors = numpy.array([[0.8, 0.8, 0.8]], dtype=numpy.float32)
     tfopacities = numpy.array([1], dtype=numpy.float32)
     
@@ -417,6 +469,7 @@ if isovalue is not None:
     ggroup.commit()
 
     ginstance = ospray.Instance(ggroup)
+    # XXX why specify transform at all?
     ginstance.set_param('transform', ospray.mat4.identity())
     #ginstance.set_param('transform', ospray.mat4.translate(dimensions[0], 0, 0))
     ginstance.commit()
@@ -435,7 +488,7 @@ else:
 
     vmodel = ospray.VolumetricModel(volume)
     vmodel.set_param('transferFunction', transfer_function)
-    #vmodel.set_param('densityScale', 0.1)
+    #vmodel.set_param('densityScale', 0.01)
     vmodel.set_param('anisotropy', anisotropy)
     vmodel.commit()
 
@@ -446,10 +499,80 @@ else:
     vgroup.commit()
 
     vinstance = ospray.Instance(vgroup)
+    # XXX why specify transform at all?
     vinstance.set_param('transform', ospray.mat4.identity())
     vinstance.commit()
 
     instances = [vinstance]
+
+# Domain bbox
+
+if show_domain_bbox:
+    
+    radius = diagonal_size / 400
+
+    # Could use the 8 corner vertices for specifying the box, but
+    # this way we can color the edges corresponding to the axes
+    vertices = numpy.array([
+        (minx, miny, minz), (maxx, miny, minz),     # X axis
+        (maxx, miny, minz), (maxx, maxy, minz),
+        (maxx, maxy, minz), (minx, maxy, minz),
+        (minx, maxy, minz), (minx, miny, minz),     # Y axis
+
+        (minx, miny, maxz), (maxx, miny, maxz),
+        (maxx, miny, maxz), (maxx, maxy, maxz),        
+        (maxx, maxy, maxz), (minx, maxy, maxz),        
+        (minx, maxy, maxz), (minx, miny, maxz),       
+
+        (minx, miny, minz), (minx, miny, maxz),     # Z axis
+        (maxx, miny, minz), (maxx, miny, maxz),
+        (maxx, maxy, minz), (maxx, maxy, maxz),
+        (minx, maxy, minz), (minx, maxy, maxz)
+    ], 'float32')
+
+    indices = numpy.array([
+        0, 2, 4, 6,
+        8, 10, 12, 14,
+        16, 18, 20, 22
+    ], dtype=numpy.uint32)    
+
+    colors = numpy.array([
+        [1, 0, 0, 1],   [1, 0, 0, 1],
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+        [0, 1, 0, 1],   [0, 1, 0, 1],
+
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+
+        [0, 0, 1, 1],   [0, 0, 1, 1],
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+        [0, 0, 0, 1],   [0, 0, 0, 1],
+    ], dtype=numpy.float32)
+
+    bbox_geom = ospray.Geometry('curve')
+    bbox_geom.set_param('vertex.position', ospray.shared_data_constructor_vec(vertices))
+    bbox_geom.set_param('radius', radius)
+
+    bbox_geom.set_param('vertex.color', ospray.shared_data_constructor_vec(colors))
+    bbox_geom.set_param('index', ospray.shared_data_constructor(indices))
+    bbox_geom.set_param('type', ospray.OSP_ROUND)
+    bbox_geom.set_param('basis', ospray.OSP_LINEAR)
+    bbox_geom.commit()
+
+    bbox_gmodel = ospray.GeometricModel(bbox_geom)
+    bbox_gmodel.commit()
+
+    bbox_group = ospray.Group()
+    bbox_group.set_param('geometry', [bbox_gmodel])
+    bbox_group.commit()
+
+    instance = ospray.Instance(bbox_group)
+    instance.commit()
+    instances.append(instance)
 
 # World
 
@@ -466,27 +589,37 @@ print('World center', center)
 
 # Camera
 
-#position = center + 3*(bound[1] - center)
-#cam_pos = position
-#cam_up = (0.0, 0.0, 1.0)
-#cam_view = center - position
+if camera_configuration is None:
 
-#cam_pos = tuple(numpy.array((center[0], center[1], center[2]+bound[1][2]), dtype=numpy.float32).tolist())
-#cam_pos = tuple(map(float, (dimensions[0], dimensions[1], 2*dimensions[2])))
-#cam_view = (0.0, -1.0, 0.0)
-#cam_up = (0.0, 0.0, 1.0)
+    camera_configuration = {'vfov': 50}
 
-center = 0.5*(extent[0] + extent[1])
-cam_pos = numpy.array([center[0], center[1]-extent[1,1], 0.5*max(extent[1])], dtype=numpy.float32)
-cam_view = center - cam_pos
-cam_up = numpy.array([0, 0, 1], dtype=numpy.float32)
+    x = minx - dimensions[0]
+    y = miny - dimensions[1]*30
+    z = maxz + dimensions[2]*0.6
+    #position = center + 3*(bound[1] - center)
+    cam_pos = camera_configuration['position'] = numpy.array([x, y, z], dtype=numpy.float32)
+    cam_up = camera_configuration['up'] = numpy.array([0, 0, 1], dtype=numpy.float32)
+    cam_view = camera_configuration['direction'] = center - cam_pos
+
+    #cam_pos = numpy.array((center[0], center[1], center[2]+bound[1][2]), dtype=numpy.float32)
+    #cam_pos = numpy.array((dimensions[0], dimensions[1], 2*dimensions[2]), dtype=numpy.float32)
+    #cam_view = numpy.array([0, -1, 0], dtype=numpy.float32)
+    #cam_up = numpy.array([0, 0, 1], dtype=numpy.float32)
+
+    # Side
+    #center = 0.5*(extent[0] + extent[1])
+    #cam_pos = numpy.array([center[0], center[1]-extent[1,1], 0.5*max(extent[1])], dtype=numpy.float32)
+    #cam_view = center - cam_pos
+    #cam_up = numpy.array([0, 0, 1], dtype=numpy.float32)
+
+print('Camera:', camera_configuration)
 
 camera = ospray.Camera('perspective')
 camera.set_param('aspect', W/H)
-camera.set_param('fovy', 50.0)
-camera.set_param('position', tuple(cam_pos.tolist()))
-camera.set_param('direction', tuple(cam_view.tolist()))
-camera.set_param('up', tuple(cam_up.tolist()))
+camera.set_param('fovy', camera_configuration['vfov'])
+camera.set_param('position', tuple(camera_configuration['position'].tolist()))
+camera.set_param('direction', tuple(camera_configuration['direction'].tolist()))
+camera.set_param('up', tuple(camera_configuration['up'].tolist()))
 camera.commit()
 
 #camera = ospray.Camera('orthographic')
@@ -507,7 +640,7 @@ if RENDERER == 'pathtracer' or isovalue is not None:
     light1.commit()
 
     light2 = ospray.Light('distant')
-    light2.set_param('direction', tuple(cam_view.tolist()))#(2.0, 1.0, -1.0))
+    light2.set_param('direction', tuple(camera_configuration['direction'].tolist()))
     light2.set_param('intensity', 0.7)
     light2.commit()
 
